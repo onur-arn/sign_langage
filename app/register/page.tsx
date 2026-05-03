@@ -16,6 +16,7 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
   const { t } = useLanguage();
 
@@ -56,18 +57,8 @@ export default function RegisterPage() {
         return;
       }
 
-      // Connexion automatique après inscription
-      const signInResult = await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
-        redirect: false,
-      });
-
-      if (signInResult?.ok) {
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
-      }
+      setSuccess(true);
+      setLoading(false);
     } catch (err) {
       setError('Une erreur est survenue');
       setLoading(false);
@@ -92,6 +83,25 @@ export default function RegisterPage() {
       </div>
       
       <div className="relative bg-white/80 backdrop-blur-xl p-10 rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md">
+        {success ? (
+          <div className="text-center py-6">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-amber-400 to-orange-400 rounded-full flex items-center justify-center shadow-lg">
+              <span className="text-4xl">⏳</span>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-3">Demande envoyée !</h2>
+            <p className="text-slate-600 mb-6">
+              Votre demande est <strong>en attente de validation</strong> de la part de l'administrateur.<br />
+              Vous recevrez un email dès que votre compte sera approuvé.
+            </p>
+            <Link
+              href="/login"
+              className="inline-block px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl font-semibold hover:shadow-lg transition-all"
+            >
+              Retour à la connexion
+            </Link>
+          </div>
+        ) : (
+        <>
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-5 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg">
             <span className="text-3xl">✨</span>
@@ -193,6 +203,8 @@ export default function RegisterPage() {
             ← Retour à l'accueil
           </Link>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

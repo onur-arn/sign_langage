@@ -77,7 +77,7 @@ async function loadSign(id: string): Promise<{ frames: SignFrame[]; fps: number 
   return { frames: data.frames, fps: data.fps ?? 25 };
 }
 
-export default function SignAvatarPlayer({ text, ts }: { text: string; ts: number }) {
+export default function SignAvatarPlayer({ text, ts, language = 'fr' }: { text: string; ts: number; language?: string }) {
   const [frames, setFrames] = useState<SignFrame[]>([]);
   const [fps, setFps] = useState(25);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -134,7 +134,7 @@ export default function SignAvatarPlayer({ text, ts }: { text: string; ts: numbe
     if (!ts) return;
     const raw = text.trim();
     if (!raw) return;
-    const signs = segmentInput(raw, LEXICON);
+    const signs = segmentInput(raw, LEXICON, language);
     if (signs.length === 0) {
       setError(`Aucun signe trouvé pour "${raw}"`);
       return;
@@ -156,8 +156,8 @@ export default function SignAvatarPlayer({ text, ts }: { text: string; ts: numbe
   return (
     <div className="flex flex-col gap-4 h-full">
       {/* Canvas avatar */}
-      <div className="relative rounded-2xl overflow-hidden bg-slate-900" style={{ height: '380px' }}>
-        <Canvas camera={{ position: [0, 0.5, 3], fov: 50 }} shadows>
+      <div className="relative rounded-2xl overflow-hidden bg-slate-900" style={{ height: '580px' }}>
+        <Canvas camera={{ position: [0, 0.65, 2.4], fov: 50 }} shadows>
           <Suspense fallback={null}>
             <ambientLight intensity={0.6} />
             <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
@@ -173,9 +173,9 @@ export default function SignAvatarPlayer({ text, ts }: { text: string; ts: numbe
             />
             <OrbitControls
               enablePan={false}
-              minDistance={1.5}
-              maxDistance={6}
-              target={[0, 0.2, 0]}
+              minDistance={1.2}
+              maxDistance={5}
+              target={[0, 0, 0]}
             />
           </Suspense>
         </Canvas>

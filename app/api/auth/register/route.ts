@@ -1,37 +1,31 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
+import { sendApprovalRequestEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
   try {
     const { email, password, name } = await req.json();
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'Email déjà utilisé' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Email déjà utilisé' }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-      }
+      data: { email, password: hashedPassword, name, status: 'PENDING' },
     });
 
-    return NextResponse.json({ message: 'Compte créé avec succès' });
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Erreur serveur' },
-      { status: 500 }
-    );
+    // Notifie l'admin par email (silencieux si non configuré)
+    await sendApprovalRequestEmail(user).catch(() => {});
+
+    return NextResponse.json({
+      message: 'Demande envoyée. Vous serez notifié par email une fois votre compte approuvé.',
+    });
+  } catch (error: any) {
+    console.error('[register]', error?.message || error);
+    return NextResponse.json({ error: error?.message || 'Erreur serveur' }, { status: 500 });
   }
 }

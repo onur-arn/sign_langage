@@ -11,6 +11,11 @@ export default async function AdminPage() {
     redirect('/login');
   }
 
+  const currentUser = await prisma.user.findUnique({ where: { email: session.user!.email! } });
+  if (currentUser?.role !== 'ADMIN') {
+    redirect('/dashboard');
+  }
+
   // Récupérer toutes les données
   const users = await prisma.user.findMany({
     orderBy: { createdAt: 'desc' },
