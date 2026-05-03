@@ -44,3 +44,8 @@ backend/venv/
 next-env.d.ts
 
 /app/generated/prisma
+
+# Large assets (trop lourds pour GitHub)
+/public/signs/
+/public/avatar.glb
+/prisma/dev.db
