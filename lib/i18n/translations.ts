@@ -1,0 +1,227 @@
+export const translations = {
+  en: {
+    // Homepage
+    hero: {
+      badge: "Sign Language Translation ✨",
+      title: "Sign",
+      titleBold: "Language",
+      subtitle: "AI and authentic videos for inclusive communication",
+      cta: "Get Started",
+      login: "Sign In",
+    },
+    features: {
+      pdf: {
+        title: "PDF",
+        desc: "Automatic upload & extraction",
+      },
+      voice: {
+        title: "Voice",
+        desc: "Multilingual speech recognition",
+      },
+      video: {
+        title: "Video",
+        desc: "Avatar with authentic signs",
+      },
+    },
+    // Auth
+    auth: {
+      loginTitle: "Login",
+      loginSubtitle: "Access your account",
+      registerTitle: "Create Account",
+      registerSubtitle: "Start your experience",
+      name: "Name (optional)",
+      email: "Email",
+      password: "Password",
+      confirmPassword: "Confirm Password",
+      loginButton: "Sign In",
+      registerButton: "Create Account",
+      noAccount: "Don't have an account?",
+      hasAccount: "Already have an account?",
+      createLink: "Create account",
+      loginLink: "Sign in",
+    },
+    // Dashboard
+    dashboard: {
+      title: "",
+      titleBold: "",
+      admin: "Admin",
+      logout: "Logout",
+      loading: "Loading...",
+      pdf: "PDF",
+      voice: "Voice",
+      text: "Text",
+      textPlaceholder: "Enter your text...",
+      translate: "",
+      translating: "Translating...",
+      stats: "Statistics",
+      words: "Words",
+      translated: "Translated",
+      missing: "Missing",
+      result: "Result",
+      currentWord: "Current word",
+      noTranslation: "No translation yet",
+    },
+    // Admin
+    admin: {
+      title: "Admin - Database",
+      back: "Back to Dashboard",
+      users: "Users",
+      translations: "Translations",
+      signs: "Signs",
+      usersTable: "Users",
+      translationsTable: "Recent Translations",
+      signsTable: "Sign Database",
+    },
+  },
+  fr: {
+    // Homepage
+    hero: {
+      badge: "✨ Traduction en langue des signes",
+      title: "Langage",
+      titleBold: "des Signes",
+      subtitle: "Intelligence artificielle et vidéos authentiques pour une communication inclusive",
+      cta: "Commencer",
+      login: "Connexion",
+    },
+    features: {
+      pdf: {
+        title: "PDF",
+        desc: "Upload et extraction automatique",
+      },
+      voice: {
+        title: "Voix",
+        desc: "Reconnaissance vocale multilingue",
+      },
+      video: {
+        title: "Vidéo",
+        desc: "Avatar avec signes authentiques",
+      },
+    },
+    // Auth
+    auth: {
+      loginTitle: "Connexion",
+      loginSubtitle: "Accédez à votre traducteur",
+      registerTitle: "Créer un compte",
+      registerSubtitle: "Commencez votre expérience",
+      name: "Nom (optionnel)",
+      email: "Email",
+      password: "Mot de passe",
+      confirmPassword: "Confirmer le mot de passe",
+      loginButton: "Se connecter",
+      registerButton: "Créer un compte",
+      noAccount: "Pas encore de compte ?",
+      hasAccount: "Déjà un compte ?",
+      createLink: "Créer un compte",
+      loginLink: "Se connecter",
+    },
+    // Dashboard
+    dashboard: {
+      title: "Sign",
+      titleBold: "Language",
+      admin: "Admin",
+      logout: "Déconnexion",
+      loading: "Chargement...",
+      pdf: "PDF",
+      voice: "Voix",
+      text: "Texte",
+      textPlaceholder: "Saisissez votre texte...",
+      translate: "Traduire",
+      translating: "Traduction...",
+      stats: "Statistiques",
+      words: "Mots",
+      translated: "Traduits",
+      missing: "Manquants",
+      result: "Résultat",
+      currentWord: "Mot actuel",
+      noTranslation: "Aucune traduction",
+    },
+    // Admin
+    admin: {
+      title: "Admin - Base de données",
+      back: "Retour au Dashboard",
+      users: "Utilisateurs",
+      translations: "Traductions",
+      signs: "Signes",
+      usersTable: "Utilisateurs",
+      translationsTable: "Traductions récentes",
+      signsTable: "Base de signes",
+    },
+  },
+  tr: {
+    // Homepage
+    hero: {
+      badge: "✨ İşaret dili çevirisi",
+      title: "İşaret",
+      titleBold: "Dili",
+      subtitle: "Kapsayıcı iletişim için yapay zeka destekli otantik işaret dili videoları",
+      cta: "Başlayın",
+      login: "Giriş Yap",
+    },
+    features: {
+      pdf: {
+        title: "PDF",
+        desc: "Otomatik yükleme ve çıkarma",
+      },
+      voice: {
+        title: "Ses",
+        desc: "Çok dilli konuşma tanıma",
+      },
+      video: {
+        title: "Video",
+        desc: "Otantik işaretlerle avatar",
+      },
+    },
+    // Auth
+    auth: {
+      loginTitle: "Giriş Yap",
+      loginSubtitle: "Çevirmeninize erişin",
+      registerTitle: "Hesap Oluştur",
+      registerSubtitle: "Deneyiminize başlayın",
+      name: "İsim (isteğe bağlı)",
+      email: "E-posta",
+      password: "Şifre",
+      confirmPassword: "Şifreyi Onayla",
+      loginButton: "Giriş Yap",
+      registerButton: "Hesap Oluştur",
+      noAccount: "Hesabınız yok mu?",
+      hasAccount: "Zaten hesabınız var mı?",
+      createLink: "Hesap oluştur",
+      loginLink: "Giriş yap",
+    },
+    // Dashboard
+    dashboard: {
+      title: "İşaret",
+      titleBold: "Dili",
+      admin: "Yönetici",
+      logout: "Çıkış Yap",
+      loading: "Yükleniyor...",
+      pdf: "PDF",
+      voice: "Ses",
+      text: "Metin",
+      textPlaceholder: "Metninizi girin...",
+      translate: "Çevir",
+      translating: "Çevriliyor...",
+      stats: "İstatistikler",
+      words: "Kelimeler",
+      translated: "Çevrildi",
+      missing: "Eksik",
+      result: "Sonuç",
+      currentWord: "Şu anki kelime",
+      noTranslation: "Henüz çeviri yok",
+    },
+    // Admin
+    admin: {
+      title: "Yönetici - Veritabanı",
+      back: "Panele Dön",
+      users: "Kullanıcılar",
+      translations: "Çeviriler",
+      signs: "İşaretler",
+      usersTable: "Kullanıcılar",
+      translationsTable: "Son Çeviriler",
+      signsTable: "İşaret Veritabanı",
+    },
+  },
+};
+
+export type Language = keyof typeof translations;
+export type TranslationKeys = typeof translations.en;
