@@ -1,6 +1,7 @@
 'use client';
 
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useDarkMode } from '@/contexts/DarkModeContext';
 import { Language } from '@/lib/i18n/translations';
 
 interface LanguageSelectorProps {
@@ -9,6 +10,7 @@ interface LanguageSelectorProps {
 
 export default function LanguageSelector({ variant = 'default' }: LanguageSelectorProps) {
   const { language, setLanguage } = useLanguage();
+  const { dark } = useDarkMode();
 
   const languages: { code: Language; label: string; flag: string }[] = [
     { code: 'fr', label: 'Français', flag: '🇫🇷' },
@@ -18,16 +20,18 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
 
   if (variant === 'compact') {
     return (
-      <div className="flex gap-2">
+      <div className="flex gap-1 p-1 rounded-xl border" style={{
+        background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.85)',
+        borderColor: 'rgba(91,164,176,0.25)',
+      }}>
         {languages.map((lang) => (
           <button
             key={lang.code}
             onClick={() => setLanguage(lang.code)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              language === lang.code
-                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+            style={language === lang.code
+              ? { background: '#5ba4b0', color: '#ffffff' }
+              : { color: dark ? 'rgba(255,255,255,0.65)' : '#5ba4b0' }}
             title={lang.label}
           >
             {lang.flag}
@@ -38,16 +42,18 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
   }
 
   return (
-    <div className="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-2 shadow-lg flex gap-2">
+    <div className="border rounded-2xl p-2 shadow-md flex gap-2" style={{
+      background: dark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+      borderColor: 'rgba(91,164,176,0.2)',
+    }}>
       {languages.map((lang) => (
         <button
           key={lang.code}
           onClick={() => setLanguage(lang.code)}
-          className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
-            language === lang.code
-              ? 'bg-slate-900 text-white shadow-md'
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
+          className="px-4 py-2.5 rounded-xl font-medium text-sm transition-all"
+          style={language === lang.code
+            ? { background: '#5ba4b0', color: '#ffffff' }
+            : { color: dark ? 'rgba(255,255,255,0.65)' : '#4a7a84' }}
         >
           <span className="mr-2">{lang.flag}</span>
           {lang.label}

@@ -6,7 +6,7 @@ export const translations = {
       title: "Sign",
       titleBold: "Language",
       subtitle: "AI and authentic videos for inclusive communication",
-      cta: "Get Started",
+      cta: "Sign Up",
       login: "Sign In",
     },
     features: {
@@ -39,6 +39,8 @@ export const translations = {
       hasAccount: "Already have an account?",
       createLink: "Create account",
       loginLink: "Sign in",
+      backHome: "← Back to home",
+      backToLogin: "Back to login",
     },
     // Dashboard
     dashboard: {
@@ -60,6 +62,15 @@ export const translations = {
       result: "Result",
       currentWord: "Current word",
       noTranslation: "No translation yet",
+      avatarReady: "Ready",
+      avatarLoading: "Loading…",
+      avatarDone: "✓ Done",
+      avatarNoSign: "No sign found for",
+      voiceSpeak: "Speak",
+      voiceStop: "Stop",
+      voiceClear: "Clear",
+      voiceListening: "Listening...",
+      voiceTranscript: "Transcript",
     },
     // Admin
     admin: {
@@ -105,7 +116,7 @@ export const translations = {
       title: "Langage",
       titleBold: "des Signes",
       subtitle: "Intelligence artificielle et vidéos authentiques pour une communication inclusive",
-      cta: "Commencer",
+      cta: "S'inscrire",
       login: "Connexion",
     },
     features: {
@@ -138,6 +149,8 @@ export const translations = {
       hasAccount: "Déjà un compte ?",
       createLink: "Créer un compte",
       loginLink: "Se connecter",
+      backHome: "← Retour à l'accueil",
+      backToLogin: "Retour à la connexion",
     },
     // Dashboard
     dashboard: {
@@ -159,6 +172,15 @@ export const translations = {
       result: "Résultat",
       currentWord: "Mot actuel",
       noTranslation: "Aucune traduction",
+      avatarReady: "Prêt",
+      avatarLoading: "Chargement…",
+      avatarDone: "✓ Terminé",
+      avatarNoSign: "Aucun signe trouvé pour",
+      voiceSpeak: "Parler",
+      voiceStop: "Arrêter",
+      voiceClear: "Effacer",
+      voiceListening: "Écoute en cours...",
+      voiceTranscript: "Transcription",
     },
     // Admin
     admin: {
@@ -204,7 +226,7 @@ export const translations = {
       title: "İşaret",
       titleBold: "Dili",
       subtitle: "Kapsayıcı iletişim için yapay zeka destekli otantik işaret dili videoları",
-      cta: "Başlayın",
+      cta: "Kayıt Ol",
       login: "Giriş Yap",
     },
     features: {
@@ -237,6 +259,8 @@ export const translations = {
       hasAccount: "Zaten hesabınız var mı?",
       createLink: "Hesap oluştur",
       loginLink: "Giriş yap",
+      backHome: "← Ana sayfaya dön",
+      backToLogin: "Girişe dön",
     },
     // Dashboard
     dashboard: {
@@ -258,6 +282,15 @@ export const translations = {
       result: "Sonuç",
       currentWord: "Şu anki kelime",
       noTranslation: "Henüz çeviri yok",
+      avatarReady: "Hazır",
+      avatarLoading: "Yükleniyor…",
+      avatarDone: "✓ Tamamlandı",
+      avatarNoSign: "Bulunamadı:",
+      voiceSpeak: "Konuş",
+      voiceStop: "Durdur",
+      voiceClear: "Temizle",
+      voiceListening: "Dinleniyor...",
+      voiceTranscript: "Transkript",
     },
     // Admin
     admin: {

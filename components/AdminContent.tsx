@@ -4,8 +4,11 @@ import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useDarkMode } from '@/contexts/DarkModeContext';
+import { DarkModeToggle } from '@/components/DarkModeToggle';
 import LanguageSelector from '@/components/LanguageSelector';
 import { getSignLabel } from '@/lib/signLabels';
+import { DISABLED_SIGNS } from '@/lib/disabledSigns';
 
 interface User {
   id: string;
@@ -41,6 +44,7 @@ interface AdminContentProps {
 
 export default function AdminContent(initial: AdminContentProps) {
   const { t, language } = useLanguage();
+  const { dark } = useDarkMode();
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [users, setUsers] = useState(initial.users);
@@ -102,21 +106,32 @@ export default function AdminContent(initial: AdminContentProps) {
     router.refresh();
   };
 
+  const bg       = dark ? '#05191e' : '#ffffff';
+  const hdrBg    = dark ? '#07202a' : '#ffffff';
+  const textMain = dark ? 'rgba(255,255,255,0.9)' : '#1e3a40';
+  const textSub  = dark ? 'rgba(255,255,255,0.5)' : '#4a7a84';
+  const cardBg   = dark ? 'rgba(255,255,255,0.05)' : '#ffffff';
+  const border   = 'rgba(91,164,176,0.2)';
+  const sectionBg = dark ? 'rgba(91,164,176,0.06)' : 'rgba(91,164,176,0.04)';
+  const rowHover  = dark ? 'rgba(91,164,176,0.06)' : 'rgba(91,164,176,0.03)';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="min-h-screen transition-colors duration-500" style={{ background: bg }}>
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-xl shadow-sm border-b border-slate-200">
+      <header className="shadow-sm border-b transition-colors duration-500" style={{ background: hdrBg, borderColor: border }}>
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">🔧 {t.admin.title}</h1>
-              <p className="text-sm text-slate-500 mt-1">{t.admin.subtitle}</p>
+              <h1 className="text-3xl font-bold" style={{ color: textMain }}>🔧 {t.admin.title}</h1>
+              <p className="text-sm mt-1" style={{ color: textSub }}>{t.admin.subtitle}</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <DarkModeToggle />
               <LanguageSelector variant="compact" />
               <Link
                 href="/dashboard"
-                className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold"
+                className="px-6 py-3 text-white rounded-xl font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
+                style={{ background: '#5ba4b0' }}
               >
                 ← {t.admin.back}
               </Link>
@@ -130,32 +145,32 @@ export default function AdminContent(initial: AdminContentProps) {
         {/* Stats */}
         <div className="flex items-center justify-between">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-md p-6 border-l-4 border-violet-500">
+            <div className="rounded-2xl shadow-sm p-6 border-l-4" style={{ background: cardBg, borderLeftColor: '#5ba4b0', borderTop: `1px solid ${border}`, borderRight: `1px solid ${border}`, borderBottom: `1px solid ${border}` }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-600 text-sm font-semibold">{t.admin.users}</p>
-                  <p className="text-4xl font-bold text-slate-900 mt-2">{users.length}</p>
+                  <p className="text-sm font-semibold" style={{ color: textSub }}>{t.admin.users}</p>
+                  <p className="text-4xl font-bold mt-2" style={{ color: textMain }}>{users.length}</p>
                 </div>
                 <div className="text-5xl">👥</div>
               </div>
             </div>
-
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-md p-6 border-l-4 border-emerald-500">
+            <div className="rounded-2xl shadow-sm p-6" style={{ background: cardBg, border: `1px solid ${border}`, borderLeftWidth: 4, borderLeftColor: '#10b981' }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-600 text-sm font-semibold">{t.admin.translations}</p>
-                  <p className="text-4xl font-bold text-slate-900 mt-2">{translations.length}</p>
+                  <p className="text-sm font-semibold" style={{ color: textSub }}>{t.admin.translations}</p>
+                  <p className="text-4xl font-bold mt-2" style={{ color: textMain }}>{translations.length}</p>
                 </div>
                 <div className="text-5xl">📝</div>
               </div>
             </div>
           </div>
-          <div className="ml-6 text-right text-xs text-slate-400 shrink-0">
+          <div className="ml-6 text-right text-xs shrink-0" style={{ color: textSub }}>
             <p>{t.admin.lastUpdate}</p>
             <p className="font-mono">
               {lastUpdate ? `${String(lastUpdate.getHours()).padStart(2,'0')}:${String(lastUpdate.getMinutes()).padStart(2,'0')}:${String(lastUpdate.getSeconds()).padStart(2,'0')}` : '—'}
             </p>
-            <button onClick={refresh} className="mt-2 px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 transition-all">
+            <button onClick={refresh} className="mt-2 px-3 py-1 rounded-lg transition-all hover:shadow-sm"
+              style={{ background: sectionBg, color: '#5ba4b0', border: `1px solid ${border}` }}>
               ↻ {t.admin.refresh}
             </button>
           </div>
@@ -163,19 +178,19 @@ export default function AdminContent(initial: AdminContentProps) {
 
         {/* Demandes en attente */}
         {pendingUsers.length > 0 && (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border-2 border-amber-300">
-            <div className="px-6 py-4 border-b border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 flex items-center gap-3">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden" style={{ border: '2px solid #f59e0b' }}>
+            <div className="px-6 py-4 border-b border-amber-200 bg-amber-50 flex items-center gap-3">
               <span className="text-2xl">⏳</span>
-              <h2 className="text-xl font-bold text-slate-900">{t.admin.pendingSection}</h2>
+              <h2 className="text-xl font-bold" style={{ color: '#1e3a40' }}>{t.admin.pendingSection}</h2>
               <span className="ml-auto bg-amber-500 text-white text-sm font-bold px-3 py-1 rounded-full">{pendingUsers.length}</span>
             </div>
             <div className="divide-y divide-slate-100">
               {pendingUsers.map(user => (
-                <div key={user.id} className="flex items-center justify-between px-6 py-4 hover:bg-amber-50/50 transition-colors">
+                <div key={user.id} className="flex items-center justify-between px-6 py-4 hover:bg-amber-50/30 transition-colors">
                   <div>
-                    <p className="font-semibold text-slate-900">{user.name || '—'}</p>
-                    <p className="text-sm text-slate-500">{user.email}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{new Date(user.createdAt).toLocaleString('fr-FR')}</p>
+                    <p className="font-semibold" style={{ color: '#1e3a40' }}>{user.name || '—'}</p>
+                    <p className="text-sm" style={{ color: '#4a7a84' }}>{user.email}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#4a7a84' }}>{new Date(user.createdAt).toLocaleString('fr-FR')}</p>
                   </div>
                   <div className="flex gap-3">
                     <button
@@ -188,7 +203,7 @@ export default function AdminContent(initial: AdminContentProps) {
                     <button
                       onClick={() => handleApproval(user.id, 'reject')}
                       disabled={loadingId === user.id}
-                      className="px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-all disabled:opacity-50"
+                      className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-all disabled:opacity-50"
                     >
                       {loadingId === user.id ? '…' : `✗ ${t.admin.reject}`}
                     </button>
@@ -201,19 +216,19 @@ export default function AdminContent(initial: AdminContentProps) {
 
         {/* Comptes refusés */}
         {rejectedUsers.length > 0 && (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border-2 border-red-200">
-            <div className="px-6 py-4 border-b border-red-100 bg-gradient-to-r from-red-50 to-rose-50 flex items-center gap-3">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden" style={{ border: '2px solid #fca5a5' }}>
+            <div className="px-6 py-4 border-b border-red-100 bg-red-50 flex items-center gap-3">
               <span className="text-2xl">✗</span>
-              <h2 className="text-xl font-bold text-slate-900">{t.admin.rejectedSection}</h2>
+              <h2 className="text-xl font-bold" style={{ color: '#1e3a40' }}>{t.admin.rejectedSection}</h2>
               <span className="ml-auto bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full">{rejectedUsers.length}</span>
             </div>
             <div className="divide-y divide-slate-100">
               {rejectedUsers.map(user => (
-                <div key={user.id} className="flex items-center justify-between px-6 py-4 hover:bg-red-50/50 transition-colors">
+                <div key={user.id} className="flex items-center justify-between px-6 py-4 hover:bg-red-50/30 transition-colors">
                   <div>
-                    <p className="font-semibold text-slate-900">{user.name || '—'}</p>
-                    <p className="text-sm text-slate-500">{user.email}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{new Date(user.createdAt).toLocaleString('fr-FR')}</p>
+                    <p className="font-semibold" style={{ color: '#1e3a40' }}>{user.name || '—'}</p>
+                    <p className="text-sm" style={{ color: '#4a7a84' }}>{user.email}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#4a7a84' }}>{new Date(user.createdAt).toLocaleString('fr-FR')}</p>
                   </div>
                   <button
                     onClick={() => handleApproval(user.id, 'approve')}
@@ -229,30 +244,25 @@ export default function AdminContent(initial: AdminContentProps) {
         )}
 
         {/* Users Table */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-slate-200">
-          <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-violet-50 to-indigo-50">
-            <h2 className="text-2xl font-bold text-slate-900">👥 {t.admin.usersTable} ({users.length})</h2>
+        <div className="rounded-2xl shadow-sm overflow-hidden border" style={{ background: cardBg, borderColor: border }}>
+          <div className="px-6 py-4 border-b" style={{ borderColor: border, background: sectionBg }}>
+            <h2 className="text-2xl font-bold" style={{ color: textMain }}>👥 {t.admin.usersTable} ({users.length})</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
+            <table className="min-w-full divide-y" style={{ borderColor: border }}>
+              <thead style={{ background: sectionBg }}>
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">{t.admin.colId}</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">{t.admin.colName}</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">{t.admin.colEmail}</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">{t.admin.colStatus}</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">{t.admin.colRole}</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">{t.admin.colAdminAccess}</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">{t.admin.colCreated}</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">{t.admin.colAction}</th>
+                  {[t.admin.colId, t.admin.colName, t.admin.colEmail, t.admin.colStatus, t.admin.colRole, t.admin.colAdminAccess, t.admin.colCreated, t.admin.colAction].map(col => (
+                    <th key={col} className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: textSub }}>{col}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
+              <tbody className="divide-y" style={{ borderColor: border }}>
                 {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">{user.id.slice(0, 8)}...</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{user.name || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{user.email}</td>
+                  <tr key={user.id} className="transition-colors" onMouseEnter={e => (e.currentTarget.style.background = rowHover)} onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono" style={{ color: textSub }}>{user.id.slice(0, 8)}...</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold" style={{ color: textMain }}>{user.name || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: textMain }}>{user.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-full text-xs font-bold ${
                         user.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
@@ -261,41 +271,37 @@ export default function AdminContent(initial: AdminContentProps) {
                       }`}>{user.status}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                        user.role === 'ADMIN' ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'
-                      }`}>{user.role}</span>
+                      <span className="px-2 py-1 rounded-full text-xs font-bold"
+                        style={user.role === 'ADMIN'
+                          ? { background: 'rgba(91,164,176,0.15)', color: '#5ba4b0' }
+                          : { background: dark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', color: textSub }}>
+                        {user.role}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {user.email === 'secretaire@youthstation.org' ? (
-                        <span className="px-3 py-1.5 text-xs text-slate-400 italic">{t.admin.mainAccount}</span>
+                        <span className="px-3 py-1.5 text-xs italic" style={{ color: textSub }}>{t.admin.mainAccount}</span>
                       ) : user.role === 'ADMIN' ? (
-                        <button
-                          onClick={() => handleRoleChange(user.id, 'USER')}
-                          disabled={loadingId === user.id}
-                          className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-red-100 hover:text-red-700 transition-all disabled:opacity-50"
-                        >
+                        <button onClick={() => handleRoleChange(user.id, 'USER')} disabled={loadingId === user.id}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 hover:bg-red-100 hover:text-red-700"
+                          style={{ background: dark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', color: textSub }}>
                           {loadingId === user.id ? '…' : `✕ ${t.admin.revokeAccess}`}
                         </button>
                       ) : (
-                        <button
-                          onClick={() => handleRoleChange(user.id, 'ADMIN')}
-                          disabled={loadingId === user.id}
-                          className="px-3 py-1.5 bg-violet-100 text-violet-700 rounded-lg text-xs font-semibold hover:bg-violet-200 transition-all disabled:opacity-50"
-                        >
+                        <button onClick={() => handleRoleChange(user.id, 'ADMIN')} disabled={loadingId === user.id}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+                          style={{ background: 'rgba(91,164,176,0.1)', color: '#5ba4b0' }}>
                           {loadingId === user.id ? '…' : `+ ${t.admin.grantAccess}`}
                         </button>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: textSub }}>
                       {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {user.email !== 'secretaire@youthstation.org' && (
-                        <button
-                          onClick={() => handleDelete(user.id, user.email)}
-                          disabled={loadingId === user.id}
-                          className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
-                        >
+                        <button onClick={() => handleDelete(user.id, user.email)} disabled={loadingId === user.id}
+                          className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-500 hover:text-white transition-all disabled:opacity-50">
                           {loadingId === user.id ? '…' : `🗑 ${t.admin.deleteAccount}`}
                         </button>
                       )}
@@ -308,28 +314,27 @@ export default function AdminContent(initial: AdminContentProps) {
         </div>
 
         {/* Mots disponibles */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-slate-200">
-          <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-indigo-50 to-violet-50 flex items-center gap-3">
-            <h2 className="text-2xl font-bold text-slate-900">🤟 {t.admin.availableWords}</h2>
-            <span className="ml-2 bg-indigo-500 text-white text-sm font-bold px-3 py-1 rounded-full">{signs.length}</span>
+        <div className="rounded-2xl shadow-sm overflow-hidden border" style={{ background: cardBg, borderColor: border }}>
+          <div className="px-6 py-4 border-b flex items-center gap-3" style={{ borderColor: border, background: sectionBg }}>
+            <h2 className="text-2xl font-bold" style={{ color: textMain }}>🤟 {t.admin.availableWords}</h2>
+            <span className="ml-2 text-white text-sm font-bold px-3 py-1 rounded-full" style={{ background: '#5ba4b0' }}>{signs.length}</span>
           </div>
           <div className="p-6">
             {signs.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">{t.admin.noWords}</p>
+              <p className="text-center py-8" style={{ color: textSub }}>{t.admin.noWords}</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {[...signs]
+                  .filter(sign => !DISABLED_SIGNS.has(sign.word))
                   .sort((a, b) => getSignLabel(a.word, language).localeCompare(getSignLabel(b.word, language)))
                   .filter((sign, idx, arr) => {
                     const label = getSignLabel(sign.word, language);
                     return arr.findIndex(s => getSignLabel(s.word, language) === label) === idx;
                   })
                   .map((sign) => (
-                  <span
-                    key={sign.id}
-                    className="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-sm font-medium"
-                    title={sign.word}
-                  >
+                  <span key={sign.id} className="px-3 py-1.5 rounded-full text-sm font-medium"
+                    style={{ background: 'rgba(91,164,176,0.1)', color: '#5ba4b0', border: '1px solid rgba(91,164,176,0.2)' }}
+                    title={sign.word}>
                     {getSignLabel(sign.word, language)}
                   </span>
                 ))}
@@ -339,27 +344,25 @@ export default function AdminContent(initial: AdminContentProps) {
         </div>
 
         {/* Translations Table */}
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-slate-200">
-          <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-emerald-50 to-teal-50">
-            <h2 className="text-2xl font-bold text-slate-900">📝 {t.admin.translationsTable} ({translations.length})</h2>
+        <div className="rounded-2xl shadow-sm overflow-hidden border" style={{ background: cardBg, borderColor: border }}>
+          <div className="px-6 py-4 border-b" style={{ borderColor: border, background: sectionBg }}>
+            <h2 className="text-2xl font-bold" style={{ color: textMain }}>📝 {t.admin.translationsTable} ({translations.length})</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
+            <table className="min-w-full divide-y" style={{ borderColor: border }}>
+              <thead style={{ background: sectionBg }}>
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">{t.admin.colText}</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">{t.admin.colUser}</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">{t.admin.colCreated}</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: textSub }}>{t.admin.colText}</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: textSub }}>{t.admin.colUser}</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: textSub }}>{t.admin.colCreated}</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
+              <tbody className="divide-y" style={{ borderColor: border }}>
                 {translations.map((translation) => (
-                  <tr key={translation.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-slate-700 max-w-md truncate">
-                      {translation.text}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{translation.user.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                  <tr key={translation.id} className="transition-colors" onMouseEnter={e => (e.currentTarget.style.background = rowHover)} onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                    <td className="px-6 py-4 text-sm max-w-md truncate" style={{ color: textMain }}>{translation.text}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: textSub }}>{translation.user.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: textSub }}>
                       {new Date(translation.createdAt).toLocaleDateString('fr-FR')}
                     </td>
                   </tr>

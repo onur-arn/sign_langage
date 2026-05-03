@@ -5,6 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import SignLanguageAvatar, { type SignFrame } from './SignLanguageAvatar';
 import { segmentInput } from '@/lib/normalize';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const SIGNS_LIST = [
   'comprendre','manger','eau','maison','voiture','famille','cocon','graines','deprime','perdu',
@@ -78,6 +79,7 @@ async function loadSign(id: string): Promise<{ frames: SignFrame[]; fps: number 
 }
 
 export default function SignAvatarPlayer({ text, ts, language = 'fr' }: { text: string; ts: number; language?: string }) {
+  const { t } = useLanguage();
   const [frames, setFrames] = useState<SignFrame[]>([]);
   const [fps, setFps] = useState(25);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -136,7 +138,7 @@ export default function SignAvatarPlayer({ text, ts, language = 'fr' }: { text: 
     if (!raw) return;
     const signs = segmentInput(raw, LEXICON, language);
     if (signs.length === 0) {
-      setError(`Aucun signe trouvé pour "${raw}"`);
+      setError(`${t.dashboard.avatarNoSign} "${raw}"`);
       return;
     }
     setError(null);
@@ -182,15 +184,14 @@ export default function SignAvatarPlayer({ text, ts, language = 'fr' }: { text: 
 
         {/* Badge statut */}
         <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold ${
-          status === 'playing' ? 'bg-violet-600 text-white' :
           status === 'loading' ? 'bg-amber-500 text-white' :
           status === 'done'    ? 'bg-emerald-500 text-white' :
-                                 'bg-slate-700 text-slate-300'
-        }`}>
-          {status === 'idle'    && 'Prêt'}
-          {status === 'loading' && 'Chargement…'}
+          status === 'idle'    ? 'bg-slate-700 text-slate-300' : ''
+        }`} style={status === 'playing' ? { background: '#5ba4b0', color: '#ffffff' } : {}}>
+          {status === 'idle'    && t.dashboard.avatarReady}
+          {status === 'loading' && t.dashboard.avatarLoading}
           {status === 'playing' && `▶ ${activeSign}`}
-          {status === 'done'    && '✓ Terminé'}
+          {status === 'done'    && t.dashboard.avatarDone}
         </div>
       </div>
 

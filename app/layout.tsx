@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Providers from "@/components/Providers";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { DarkModeProvider } from "@/contexts/DarkModeContext";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,7 +25,9 @@ export default function RootLayout({
       <body className="antialiased font-sans">
         <Providers>
           <LanguageProvider>
-            {children}
+            <DarkModeProvider>
+              {children}
+            </DarkModeProvider>
           </LanguageProvider>
         </Providers>
       </body>

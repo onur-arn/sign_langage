@@ -1,11 +1,16 @@
 'use client';
 
 import Link from "next/link";
+import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Language } from "@/lib/i18n/translations";
+import { GridAnimation } from "./GridAnimation";
+import { DarkModeToggle } from "./DarkModeToggle";
+import { useDarkMode } from "@/contexts/DarkModeContext";
 
 export default function HomePage() {
   const { language, setLanguage, t } = useLanguage();
+  const { dark } = useDarkMode();
 
   const languages: { code: Language; label: string; flag: string }[] = [
     { code: 'fr', label: 'Français', flag: '🇫🇷' },
@@ -13,111 +18,167 @@ export default function HomePage() {
     { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
   ];
 
+  const tx = {
+    title:    dark ? 'rgba(255,255,255,0.95)' : '#1e3a40',
+    subtitle: dark ? 'rgba(255,255,255,0.55)'  : '#4a7a84',
+    card:     dark ? 'rgba(255,255,255,0.06)'  : '#ffffff',
+    cardBorder: dark ? 'rgba(91,164,176,0.2)'  : 'rgba(91,164,176,0.2)',
+    cardTitle:  dark ? 'rgba(255,255,255,0.9)'  : '#1e3a40',
+    cardDesc:   dark ? 'rgba(255,255,255,0.5)'  : '#4a7a84',
+    logoBg:   dark ? 'rgba(255,255,255,0.1)'   : '#ffffff',
+    sectionBg: dark ? '#05191e' : '#ffffff',
+    border:   dark ? 'rgba(91,164,176,0.2)'    : 'rgba(91,164,176,0.2)',
+    partnerLabel: dark ? 'rgba(91,164,176,0.7)' : '#5ba4b0',
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 relative overflow-hidden">
-      {/* Subtle animated background */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-violet-100/20 via-transparent to-transparent"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-indigo-100/20 via-transparent to-transparent"></div>
-      
-      {/* Language Selector - Top Right */}
-      <div className="absolute top-8 right-8 z-20">
-        <div className="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl p-2 shadow-lg flex gap-2">
-          {languages.map((lang) => (
-            <button
-              key={lang.code}
-              onClick={() => setLanguage(lang.code)}
-              className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
-                language === lang.code
-                  ? 'bg-slate-900 text-white shadow-md'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <span className="mr-2">{lang.flag}</span>
-              {lang.label}
-            </button>
-          ))}
+    <div style={{ background: tx.sectionBg, transition: 'background 0.5s ease' }}>
+      {/* ── HERO — full viewport ── */}
+      <section className="relative min-h-screen flex flex-col overflow-hidden">
+        {/* Grid animation background */}
+        <div className="absolute inset-0 z-0">
+          <GridAnimation dark={dark} />
         </div>
-      </div>
 
-      <main className="relative min-h-screen flex flex-col items-center justify-center px-6 py-20">
-        <div className="max-w-6xl w-full space-y-16">
-          {/* Hero Section */}
-          <div className="text-center space-y-8">
-            <div className="inline-block">
-              <div className="text-sm font-medium text-violet-600 bg-violet-50 px-5 py-2.5 rounded-full border border-violet-100">
-                {t.hero.badge}
-              </div>
-            </div>
-            
-            <h1 className="text-7xl md:text-8xl lg:text-9xl font-extralight text-slate-900 tracking-tight leading-none">
-              {t.hero.title}
-              <span className="block font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mt-2">
-                {t.hero.titleBold}
-              </span>
-            </h1>
-            
-            <p className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto font-light leading-relaxed">
-              {t.hero.subtitle}
-            </p>
+        {/* Top bar */}
+        <div className="absolute top-6 left-0 right-0 z-30 flex items-center justify-between px-6">
+          <DarkModeToggle variant="overlay" />
+
+          {/* Language Selector */}
+          <div className="backdrop-blur-xl border rounded-2xl p-1.5 flex gap-1"
+            style={{ background: dark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.85)', borderColor: 'rgba(91,164,176,0.25)' }}>
+            {languages.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => setLanguage(lang.code)}
+                className="px-4 py-2 rounded-xl font-medium text-sm transition-all"
+                style={language === lang.code
+                  ? { background: '#5ba4b0', color: '#ffffff', fontWeight: 700 }
+                  : { color: dark ? 'rgba(255,255,255,0.7)' : '#5ba4b0' }
+                }
+              >
+                <span className="mr-1.5">{lang.flag}</span>
+                {lang.label}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* CTA Buttons */}
-          <div className="flex items-center justify-center gap-4 flex-wrap">
+        {/* Centered hero content */}
+        <div className="relative z-20 flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <h1 className="text-6xl md:text-7xl lg:text-8xl tracking-tight leading-tight transition-colors duration-500" style={{ color: tx.title }}>
+            <span className="font-extralight">{t.hero.title}</span>
+            <span className="block font-bold mt-2" style={{ color: '#5ba4b0' }}>
+              {t.hero.titleBold}
+            </span>
+          </h1>
+          <p className="mt-6 text-lg md:text-xl max-w-xl font-light leading-relaxed transition-colors duration-500"
+            style={{ color: tx.subtitle }}>
+            {t.hero.subtitle}
+          </p>
+          <div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
             <Link
               href="/register"
-              className="group relative px-10 py-4 bg-slate-900 text-white rounded-full font-semibold overflow-hidden transition-all hover:scale-105 hover:shadow-2xl shadow-lg"
+              className="px-8 py-3.5 rounded-full font-semibold text-sm hover:scale-105 hover:shadow-xl transition-all shadow-md"
+              style={{ background: '#5ba4b0', color: '#ffffff' }}
             >
-              <span className="relative z-10">{t.hero.cta}</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              {t.hero.cta}
             </Link>
             <Link
               href="/login"
-              className="px-10 py-4 text-slate-900 rounded-full font-semibold border-2 border-slate-300 hover:border-slate-900 hover:bg-slate-50 transition-all shadow-md"
+              className="px-8 py-3.5 rounded-full font-semibold text-sm transition-all border-2"
+              style={dark
+                ? { borderColor: 'rgba(255,255,255,0.4)', color: 'rgba(255,255,255,0.85)' }
+                : { borderColor: '#5ba4b0', color: '#5ba4b0' }
+              }
             >
               {t.hero.login}
             </Link>
           </div>
+        </div>
 
-          {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-24">
-            {/* PDF Feature */}
-            <div className="group relative bg-white/70 backdrop-blur-sm p-8 rounded-3xl border border-slate-200 hover:border-violet-300 transition-all hover:shadow-xl hover:-translate-y-2 duration-300">
-              <div className="absolute -top-3 -right-3 w-20 h-20 bg-gradient-to-br from-violet-400/20 to-purple-400/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-300"></div>
-              <div className="relative">
-                <div className="text-5xl mb-5">📄</div>
-                <h3 className="text-2xl font-semibold text-slate-900 mb-3">{t.features.pdf.title}</h3>
-                <p className="text-slate-600 leading-relaxed">
-                  {t.features.pdf.desc}
-                </p>
-              </div>
-            </div>
-
-            {/* Voice Feature */}
-            <div className="group relative bg-white/70 backdrop-blur-sm p-8 rounded-3xl border border-slate-200 hover:border-indigo-300 transition-all hover:shadow-xl hover:-translate-y-2 duration-300">
-              <div className="absolute -top-3 -right-3 w-20 h-20 bg-gradient-to-br from-indigo-400/20 to-blue-400/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-300"></div>
-              <div className="relative">
-                <div className="text-5xl mb-5">🎤</div>
-                <h3 className="text-2xl font-semibold text-slate-900 mb-3">{t.features.voice.title}</h3>
-                <p className="text-slate-600 leading-relaxed">
-                  {t.features.voice.desc}
-                </p>
-              </div>
-            </div>
-
-            {/* Video Feature */}
-            <div className="group relative bg-white/70 backdrop-blur-sm p-8 rounded-3xl border border-slate-200 hover:border-purple-300 transition-all hover:shadow-xl hover:-translate-y-2 duration-300">
-              <div className="absolute -top-3 -right-3 w-20 h-20 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-xl group-hover:scale-150 transition-transform duration-300"></div>
-              <div className="relative">
-                <div className="text-5xl mb-5">🎥</div>
-                <h3 className="text-2xl font-semibold text-slate-900 mb-3">{t.features.video.title}</h3>
-                <p className="text-slate-600 leading-relaxed">
-                  {t.features.video.desc}
-                </p>
-              </div>
-            </div>
+        {/* Scroll hint */}
+        <div className="relative z-20 flex justify-center pb-8">
+          <div className="flex flex-col items-center gap-2 animate-bounce" style={{ color: 'rgba(91,164,176,0.5)' }}>
+            <span className="text-xs font-medium uppercase tracking-widest">Scroll</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12l7 7 7-7" />
+            </svg>
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* ── BELOW THE FOLD ── */}
+      <section className="relative z-10 px-6 py-20 transition-colors duration-500" style={{ background: tx.sectionBg }}>
+        <div className="max-w-5xl mx-auto space-y-16">
+
+          {/* Feature Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { emoji: '📄', title: t.features.pdf.title, desc: t.features.pdf.desc },
+              { emoji: '🎤', title: t.features.voice.title, desc: t.features.voice.desc },
+              { emoji: '🎥', title: t.features.video.title, desc: t.features.video.desc },
+            ].map((f, i) => (
+              <div key={i}
+                className="group p-9 rounded-3xl transition-all hover:shadow-xl hover:-translate-y-1 duration-300 border"
+                style={{ background: tx.card, borderColor: tx.cardBorder, boxShadow: '0 4px 20px rgba(91,164,176,0.08)' }}
+              >
+                <div className="text-5xl mb-5">{f.emoji}</div>
+                <h3 className="text-lg font-semibold mb-3" style={{ color: tx.cardTitle }}>{f.title}</h3>
+                <p className="leading-relaxed text-sm" style={{ color: tx.cardDesc }}>{f.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Partners */}
+          <div className="border-t pt-16" style={{ borderColor: tx.border }}>
+            <p className="text-center text-xs font-semibold uppercase tracking-widest mb-12"
+              style={{ color: tx.partnerLabel }}>
+              {language === 'fr' ? 'Partenaires & collaborateurs' : language === 'tr' ? 'Ortaklar & iş birlikçiler' : 'Partners & collaborators'}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16">
+              {[
+                { src: '/logo-project.jpg', alt: 'Project logo', h: 'h-20' },
+                { src: '/logo-youthstation.png', alt: 'Youth Station', h: 'h-20' },
+                { src: '/logo-ulusal-ajans.png', alt: 'Türkiye Ulusal Ajansı', h: 'h-16' },
+                { src: '/logo-eu.png', alt: 'Co-funded by the European Union', h: 'h-24' },
+              ].map((logo) => (
+                <div key={logo.src}
+                  className="rounded-2xl px-7 py-5 transition-all cursor-default border"
+                  style={{ background: tx.logoBg, borderColor: 'rgba(91,164,176,0.15)', boxShadow: '0 2px 12px rgba(91,164,176,0.1)' }}
+                >
+                  <Image
+                    src={logo.src}
+                    alt={logo.alt}
+                    width={260}
+                    height={120}
+                    className={`object-contain ${logo.h} w-auto`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Footer */}
+        <div className="border-t mt-8 pt-6 pb-4 text-center" style={{ borderColor: 'rgba(91,164,176,0.15)' }}>
+          <p className="text-xs" style={{ color: tx.partnerLabel }}>
+            {language === 'fr' && <>Développé par </>}
+            {language === 'en' && <>Developed by </>}
+            {language === 'tr' && <>Geliştiren: </>}
+            <span className="font-semibold">Onur Arslan</span>
+            {' · '}
+            {language === 'fr' && 'Contact : '}
+            {language === 'en' && 'Contact: '}
+            {language === 'tr' && 'İletişim: '}
+            <a href="mailto:secretaire@youthstation.org" className="hover:underline" style={{ color: '#5ba4b0' }}>
+              secretaire@youthstation.org
+            </a>
+          </p>
+        </div>
+
+      </section>
     </div>
   );
 }
