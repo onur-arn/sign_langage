@@ -18,8 +18,8 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (formData.password !== formData.confirmPassword) { setError('Les mots de passe ne correspondent pas'); return; }
-    if (formData.password.length < 6) { setError('Le mot de passe doit contenir au moins 6 caractères'); return; }
+    if (formData.password !== formData.confirmPassword) { setError(t.auth.passwordMismatch); return; }
+    if (formData.password.length < 6) { setError(t.auth.passwordTooShort); return; }
     setLoading(true);
     try {
       const response = await fetch('/api/auth/register', {
@@ -28,9 +28,13 @@ export default function RegisterPage() {
         body: JSON.stringify({ name: formData.name, email: formData.email, password: formData.password }),
       });
       const data = await response.json();
-      if (!response.ok) { setError(data.error || 'Une erreur est survenue'); setLoading(false); return; }
+      if (!response.ok) {
+        setError(data.error === 'EMAIL_TAKEN' ? t.auth.emailTaken : t.auth.errorOccurred);
+        setLoading(false);
+        return;
+      }
       setSuccess(true);
-    } catch { setError('Une erreur est survenue'); }
+    } catch { setError(t.auth.errorOccurred); }
     finally { setLoading(false); }
   };
 
@@ -80,10 +84,11 @@ export default function RegisterPage() {
               style={{ background: '#5ba4b0' }}>
               <span className="text-4xl">⏳</span>
             </div>
-            <h2 className="text-2xl font-bold mb-3" style={{ color: textMain }}>Demande envoyée !</h2>
+            <h2 className="text-2xl font-bold mb-3" style={{ color: textMain }}>{t.auth.successTitle}</h2>
             <p className="mb-8" style={{ color: textSub }}>
-              Votre demande est <strong style={{ color: textMain }}>en attente de validation</strong> de la part de l'administrateur.<br />
-              Vous recevrez un email dès que votre compte sera approuvé.
+              {t.auth.successBodyBefore}{' '}
+              <strong style={{ color: textMain }}>{t.auth.successPending}</strong>.<br />
+              {t.auth.successBodyAfter}
             </p>
             <Link href="/login"
               className="inline-block px-8 py-3 text-white rounded-2xl font-semibold hover:shadow-lg transition-all"

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import FileUpload from '@/components/upload/FileUpload';
 import VoiceInput from '@/components/VoiceInput';
 import LanguageSelector from '@/components/LanguageSelector';
@@ -19,7 +20,7 @@ export default function DashboardPage() {
   const { dark } = useDarkMode();
   const [text, setText] = useState('');
   const [avatarText, setAvatarText] = useState<{ value: string; ts: number }>({ value: '', ts: 0 });
-  const [isTranslating, setIsTranslating] = useState(false);
+  const [inputLang, setInputLang] = useState<'fr' | 'en' | 'tr'>('fr');
   const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
@@ -43,16 +44,9 @@ export default function DashboardPage() {
     return null;
   }
 
-  const handleTranslate = async (inputText: string, fileUrl?: string) => {
+  const handleTranslate = (inputText: string) => {
     setText(inputText);
-    setIsTranslating(true);
-    try {
-      setAvatarText({ value: inputText, ts: Date.now() });
-    } catch (error) {
-      console.error('Erreur de traduction:', error);
-    } finally {
-      setIsTranslating(false);
-    }
+    setAvatarText({ value: inputText, ts: Date.now() });
   };
 
 
@@ -82,7 +76,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold" style={{ color: textMain }}>
-                {t.dashboard.title}<span className="font-light">{t.dashboard.titleBold}</span>
+                {t.dashboard.title} <span className="font-light">{t.dashboard.titleBold}</span>
               </h1>
               <p className="text-sm mt-1" style={{ color: textSub }}>{session.user?.name || session.user?.email}</p>
             </div>
@@ -122,6 +116,25 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3 mb-4">
                 <div className="text-2xl">✍️</div>
                 <h2 className="text-lg font-semibold" style={{ color: textMain }}>{t.dashboard.text}</h2>
+                <div className="ml-auto flex gap-1 p-1 rounded-xl border" style={{ borderColor: border, background: areaBg }}>
+                  {([
+                    { code: 'fr', flag: '🇫🇷', label: 'FR' },
+                    { code: 'en', flag: '🇬🇧', label: 'EN' },
+                    { code: 'tr', flag: '🇹🇷', label: 'TR' },
+                  ] as const).map(({ code, flag, label }) => (
+                    <button
+                      key={code}
+                      onClick={() => setInputLang(code)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                      style={inputLang === code
+                        ? { background: '#5ba4b0', color: '#ffffff' }
+                        : { color: textSub }
+                      }
+                    >
+                      {flag} {label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <textarea
                 className="w-full p-4 border rounded-xl focus:ring-2 focus:ring-[#5ba4b0] focus:border-[#5ba4b0] transition-all resize-none text-sm outline-none"
@@ -133,11 +146,11 @@ export default function DashboardPage() {
               />
               <button
                 onClick={() => handleTranslate(text)}
-                disabled={!text.trim() || isTranslating}
+                disabled={!text.trim()}
                 className="mt-3 w-full text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-[1.01] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 text-sm"
                 style={{ background: '#5ba4b0' }}
               >
-                {isTranslating ? t.dashboard.translating : t.dashboard.translate}
+                {t.dashboard.translate}
               </button>
             </div>
 
@@ -190,12 +203,51 @@ export default function DashboardPage() {
                 <div className="text-2xl">🎥</div>
                 <h2 className="text-lg font-semibold" style={{ color: textMain }}>{t.dashboard.result}</h2>
               </div>
-              <SignAvatarPlayer text={avatarText.value} ts={avatarText.ts} language={language} />
+              <SignAvatarPlayer text={avatarText.value} ts={avatarText.ts} language={inputLang} />
             </div>
           </div>
 
         </div>
       </main>
+
+      {/* Partners & Footer */}
+      <footer className="border-t mt-8 px-8 pt-10 pb-6" style={{ borderColor: border }}>
+        <div className="max-w-7xl mx-auto space-y-8">
+          <p className="text-center text-xs font-semibold uppercase tracking-widest" style={{ color: textSub }}>
+            {language === 'fr' ? 'Partenaires & collaborateurs' : language === 'tr' ? 'Ortaklar & iş birlikçiler' : 'Partners & collaborators'}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+            {[
+              { src: '/logo-project.jpg', alt: 'Project logo', h: 'h-16' },
+              { src: '/logo-youthstation.png', alt: 'Youth Station', h: 'h-16' },
+              { src: '/logo-ulusal-ajans.png', alt: 'Türkiye Ulusal Ajansı', h: 'h-12' },
+              { src: '/logo-eu.png', alt: 'Co-funded by the European Union', h: 'h-20' },
+            ].map((logo) => (
+              <div key={logo.src}
+                className="rounded-2xl px-6 py-4 border transition-all"
+                style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#ffffff', borderColor: 'rgba(91,164,176,0.15)', boxShadow: '0 2px 12px rgba(91,164,176,0.08)' }}
+              >
+                <Image src={logo.src} alt={logo.alt} width={200} height={90} className={`object-contain ${logo.h} w-auto`} />
+              </div>
+            ))}
+          </div>
+          <div className="border-t pt-5 text-center" style={{ borderColor: 'rgba(91,164,176,0.12)' }}>
+            <p className="text-xs" style={{ color: '#5ba4b0' }}>
+              {language === 'fr' && <>Développé par </>}
+              {language === 'en' && <>Developed by </>}
+              {language === 'tr' && <>Geliştiren: </>}
+              <span className="font-semibold">Onur Arslan</span>
+              {' · '}
+              {language === 'fr' && 'Contact : '}
+              {language === 'en' && 'Contact: '}
+              {language === 'tr' && 'İletişim: '}
+              <a href="mailto:secretaire@youthstation.org" className="hover:underline" style={{ color: '#5ba4b0' }}>
+                secretaire@youthstation.org
+              </a>
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

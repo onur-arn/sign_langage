@@ -49,3 +49,5 @@ next-env.d.ts
 /public/signs/
 /public/avatar.glb
 /prisma/dev.db
+
+.next

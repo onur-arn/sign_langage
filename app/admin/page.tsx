@@ -16,20 +16,7 @@ export default async function AdminPage() {
     redirect('/dashboard');
   }
 
-  // Récupérer toutes les données
-  const users = await prisma.user.findMany({
-    orderBy: { createdAt: 'desc' },
-  });
+  const users = await prisma.user.findMany({ orderBy: { createdAt: 'desc' } });
 
-  const translations = await prisma.translation.findMany({
-    include: { user: true },
-    orderBy: { createdAt: 'desc' },
-    take: 50,
-  });
-
-  const signs = await prisma.sign.findMany({
-    orderBy: { word: 'asc' },
-  });
-
-  return <AdminContent users={users} translations={translations} signs={signs} />;
+  return <AdminContent users={users} />;
 }

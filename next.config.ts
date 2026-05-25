@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Empty config - using Next.js defaults
+  serverExternalPackages: ['@prisma/client', 'prisma'],
 };
 
 export default nextConfig;

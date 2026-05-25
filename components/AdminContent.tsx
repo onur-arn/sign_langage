@@ -7,8 +7,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useDarkMode } from '@/contexts/DarkModeContext';
 import { DarkModeToggle } from '@/components/DarkModeToggle';
 import LanguageSelector from '@/components/LanguageSelector';
-import { getSignLabel } from '@/lib/signLabels';
-import { DISABLED_SIGNS } from '@/lib/disabledSigns';
+import SignDictionary from '@/components/SignDictionary';
+import { SIGN_LABELS_FR } from '@/lib/signLabels';
+
+const SIGNS_COUNT = Object.keys(SIGN_LABELS_FR).length;
 
 interface User {
   id: string;
@@ -19,27 +21,8 @@ interface User {
   createdAt: Date;
 }
 
-interface Translation {
-  id: string;
-  text: string;
-  createdAt: Date;
-  user: {
-    email: string;
-  };
-}
-
-interface Sign {
-  id: string;
-  word: string;
-  category: string | null;
-  animationUrl: string;
-  createdAt: Date;
-}
-
 interface AdminContentProps {
   users: User[];
-  translations: Translation[];
-  signs: Sign[];
 }
 
 export default function AdminContent(initial: AdminContentProps) {
@@ -48,8 +31,6 @@ export default function AdminContent(initial: AdminContentProps) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [users, setUsers] = useState(initial.users);
-  const [translations, setTranslations] = useState(initial.translations);
-  const [signs, setSigns] = useState(initial.signs);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   useEffect(() => { setLastUpdate(new Date()); }, []);
@@ -59,8 +40,6 @@ export default function AdminContent(initial: AdminContentProps) {
     if (!res.ok) return;
     const data = await res.json();
     setUsers(data.users);
-    setTranslations(data.translations);
-    setSigns(data.signs);
     setLastUpdate(new Date());
   }, []);
 
@@ -157,10 +136,12 @@ export default function AdminContent(initial: AdminContentProps) {
             <div className="rounded-2xl shadow-sm p-6" style={{ background: cardBg, border: `1px solid ${border}`, borderLeftWidth: 4, borderLeftColor: '#10b981' }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: textSub }}>{t.admin.translations}</p>
-                  <p className="text-4xl font-bold mt-2" style={{ color: textMain }}>{translations.length}</p>
+                  <p className="text-sm font-semibold" style={{ color: textSub }}>
+                    {language === 'fr' ? 'Mots disponibles' : language === 'tr' ? 'Mevcut kelimeler' : 'Available words'}
+                  </p>
+                  <p className="text-4xl font-bold mt-2" style={{ color: textMain }}>{SIGNS_COUNT}</p>
                 </div>
-                <div className="text-5xl">📝</div>
+                <div className="text-5xl">🤟</div>
               </div>
             </div>
           </div>
@@ -313,64 +294,8 @@ export default function AdminContent(initial: AdminContentProps) {
           </div>
         </div>
 
-        {/* Mots disponibles */}
-        <div className="rounded-2xl shadow-sm overflow-hidden border" style={{ background: cardBg, borderColor: border }}>
-          <div className="px-6 py-4 border-b flex items-center gap-3" style={{ borderColor: border, background: sectionBg }}>
-            <h2 className="text-2xl font-bold" style={{ color: textMain }}>🤟 {t.admin.availableWords}</h2>
-            <span className="ml-2 text-white text-sm font-bold px-3 py-1 rounded-full" style={{ background: '#5ba4b0' }}>{signs.length}</span>
-          </div>
-          <div className="p-6">
-            {signs.length === 0 ? (
-              <p className="text-center py-8" style={{ color: textSub }}>{t.admin.noWords}</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {[...signs]
-                  .filter(sign => !DISABLED_SIGNS.has(sign.word))
-                  .sort((a, b) => getSignLabel(a.word, language).localeCompare(getSignLabel(b.word, language)))
-                  .filter((sign, idx, arr) => {
-                    const label = getSignLabel(sign.word, language);
-                    return arr.findIndex(s => getSignLabel(s.word, language) === label) === idx;
-                  })
-                  .map((sign) => (
-                  <span key={sign.id} className="px-3 py-1.5 rounded-full text-sm font-medium"
-                    style={{ background: 'rgba(91,164,176,0.1)', color: '#5ba4b0', border: '1px solid rgba(91,164,176,0.2)' }}
-                    title={sign.word}>
-                    {getSignLabel(sign.word, language)}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Translations Table */}
-        <div className="rounded-2xl shadow-sm overflow-hidden border" style={{ background: cardBg, borderColor: border }}>
-          <div className="px-6 py-4 border-b" style={{ borderColor: border, background: sectionBg }}>
-            <h2 className="text-2xl font-bold" style={{ color: textMain }}>📝 {t.admin.translationsTable} ({translations.length})</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y" style={{ borderColor: border }}>
-              <thead style={{ background: sectionBg }}>
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: textSub }}>{t.admin.colText}</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: textSub }}>{t.admin.colUser}</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider" style={{ color: textSub }}>{t.admin.colCreated}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y" style={{ borderColor: border }}>
-                {translations.map((translation) => (
-                  <tr key={translation.id} className="transition-colors" onMouseEnter={e => (e.currentTarget.style.background = rowHover)} onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                    <td className="px-6 py-4 text-sm max-w-md truncate" style={{ color: textMain }}>{translation.text}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: textSub }}>{translation.user.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: textSub }}>
-                      {new Date(translation.createdAt).toLocaleDateString('fr-FR')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        {/* Dictionnaire par lettre */}
+        <SignDictionary />
       </main>
     </div>
   );

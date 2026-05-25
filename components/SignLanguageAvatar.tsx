@@ -134,6 +134,8 @@ export default function SignLanguageAvatar({
   const transitionQuats = useRef<Record<string, THREE.Quaternion>>({})
   const lastCapturedIdx = useRef(-1)
   const doneFired = useRef(false)
+  const frozenSidesPerFrame = useRef<Set<'Left' | 'Right'>[]>([])
+  const frozenSidesForSign  = useRef<Set<'Left' | 'Right'>>(new Set())
 
   // Face expression state
   const faceTime   = useRef(0)
@@ -188,6 +190,13 @@ export default function SignLanguageAvatar({
       transitionQuats.current[name] = bone.quaternion.clone()
     }
   }, [transitionFrame])
+
+  useEffect(() => {
+    frozenSidesPerFrame.current = computeFrozenSides(frames)
+    const all = new Set<'Left' | 'Right'>()
+    for (const s of frozenSidesPerFrame.current) for (const side of s) all.add(side)
+    frozenSidesForSign.current = all
+  }, [frames])
 
   useEffect(() => {
     if (isPlaying) {
@@ -386,16 +395,29 @@ export default function SignLanguageAvatar({
     if (currentIdx !== lastCapturedIdx.current) {
       lastCapturedIdx.current = currentIdx
 
+      const frozenA = frozenSidesPerFrame.current[currentIdx] ?? new Set<'Left' | 'Right'>()
+      const frozenB = frozenSidesPerFrame.current[nextIdx]    ?? new Set<'Left' | 'Right'>()
+
       applyFrame(frames[currentIdx], bones.current, restQuats.current)
       for (const [name, bone] of Object.entries(bones.current)) {
         if (!frameAQuats.current[name]) frameAQuats.current[name] = new THREE.Quaternion()
         frameAQuats.current[name].copy(bone.quaternion)
+      }
+      for (const side of frozenA) {
+        for (const [name, q] of Object.entries(frameAQuats.current)) {
+          if (name.startsWith(side)) { const idle = idleQuats.current[name]; if (idle) q.copy(idle) }
+        }
       }
 
       applyFrame(frames[nextIdx], bones.current, restQuats.current)
       for (const [name, bone] of Object.entries(bones.current)) {
         if (!frameBQuats.current[name]) frameBQuats.current[name] = new THREE.Quaternion()
         frameBQuats.current[name].copy(bone.quaternion)
+      }
+      for (const side of frozenB) {
+        for (const [name, q] of Object.entries(frameBQuats.current)) {
+          if (name.startsWith(side)) { const idle = idleQuats.current[name]; if (idle) q.copy(idle) }
+        }
       }
     }
 
@@ -413,6 +435,8 @@ export default function SignLanguageAvatar({
       const raw = (currentIdx + lerpT) / INTRO_FRAMES
       const blend = raw * raw * (3 - 2 * raw) // smoothstep
       for (const [name, bone] of Object.entries(bones.current)) {
+        const side = name.startsWith('Left') ? 'Left' : name.startsWith('Right') ? 'Right' : null
+        if (side && frozenSidesForSign.current.has(side)) continue
         const from = startPoseQuats.current[name]
         if (!from) continue
         const target = bone.quaternion.clone()
@@ -429,6 +453,8 @@ export default function SignLanguageAvatar({
       const raw = (currentIdx - outroStart + lerpT) / OUTRO_FRAMES
       const blend = raw * raw * (3 - 2 * raw) // smoothstep
       for (const [name, bone] of Object.entries(bones.current)) {
+        const side = name.startsWith('Left') ? 'Left' : name.startsWith('Right') ? 'Right' : null
+        if (side && frozenSidesForSign.current.has(side)) continue
         const to = outroTarget[name]
         if (!to) continue
         bone.quaternion.slerp(to, blend)
@@ -574,6 +600,77 @@ function applyFaceExpression(
     const totalSmile = 0.14 + Math.pow(Math.max(0, smilePhase), 0.85) * 0.50
     setMorph(meshes, morphDict, ['mouthSmile'], Math.min(0.65, totalSmile))
   }
+}
+
+// ─── Frozen side detection ────────────────────────────────────────────────────
+
+function handLandmarksEqual(a: Landmark[], b: Landmark[]): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].x !== b[i].x || a[i].y !== b[i].y || a[i].z !== b[i].z) return false
+  }
+  return true
+}
+
+function isSideIdle(frames: SignFrame[], side: 'Left' | 'Right'): boolean {
+  const MIN_RUN           = 5
+  const FREEZE_THRESHOLD  = 0.25
+  const WRIST_SPREAD_MAX  = 0.30
+  const WRIST_ACTIVE_MIN  = 0.50  // si le poignet bouge autant, jamais idle
+  const wristIdx          = side === 'Left' ? MP.LEFT_WRIST : MP.RIGHT_WRIST
+  const key               = side === 'Left' ? 'left_hand' : 'right_hand'
+  const n                 = frames.length
+
+  // Pré-calcul du spread du poignet
+  let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity
+  for (const fr of frames) {
+    const p = fr.pose[wristIdx]
+    if (p.x < xMin) xMin = p.x; if (p.x > xMax) xMax = p.x
+    if (p.y < yMin) yMin = p.y; if (p.y > yMax) yMax = p.y
+  }
+  const dx = xMax - xMin, dy = yMax - yMin
+  const spread = Math.sqrt(dx * dx + dy * dy)
+
+  // Bras clairement actif → jamais idle (priorité absolue)
+  if (spread >= WRIST_ACTIVE_MIN) return false
+
+  // Criterion 1: freeze ratio (détection échouée, frames copiées)
+  let runLen = 1, totalFrozen = 0
+  for (let i = 1; i < n; i++) {
+    const prev = frames[i - 1][key as keyof SignFrame] as Landmark[] | undefined
+    const curr = frames[i][key as keyof SignFrame]     as Landmark[] | undefined
+    if (prev && curr && handLandmarksEqual(prev, curr)) { runLen++ }
+    else { if (runLen >= MIN_RUN) totalFrozen += runLen; runLen = 1 }
+  }
+  if (runLen >= MIN_RUN) totalFrozen += runLen
+  if (totalFrozen / n >= FREEZE_THRESHOLD) return true
+
+  // Criterion 2: poignet à peine mobile
+  if (spread < WRIST_SPREAD_MAX) return true
+
+  return false
+}
+
+function computeFrozenSides(frames: SignFrame[]): Set<'Left' | 'Right'>[] {
+  const n = frames.length
+  const result: Set<'Left' | 'Right'>[] = Array.from({ length: n }, () => new Set<'Left' | 'Right'>())
+
+  for (const side of ['Left', 'Right'] as const) {
+    if (isSideIdle(frames, side)) {
+      for (let j = 0; j < n; j++) result[j].add(side)
+      continue
+    }
+    const wristIdx = side === 'Left' ? MP.LEFT_WRIST : MP.RIGHT_WRIST
+    const elbowIdx = side === 'Left' ? MP.LEFT_ELBOW : MP.RIGHT_ELBOW
+    for (let i = 0; i < n; i++) {
+      const wrist = frames[i].pose[wristIdx] as any
+      const elbow = frames[i].pose[elbowIdx] as any
+      if ((wrist.visibility ?? 1) < 0.5 || (elbow.visibility ?? 1) < 0.5) {
+        result[i].add(side)
+      }
+    }
+  }
+  return result
 }
 
 // ─── Pose application ─────────────────────────────────────────────────────────

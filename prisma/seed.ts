@@ -35,7 +35,7 @@ async function main() {
   console.log('\n🎉 Seeding terminé !');
   console.log(`\n📊 Résumé :`);
   console.log(`   - 1 utilisateur (email: test@example.com, password: password123)`);
-  console.log(`   - ${signs.length} signes de langue des signes`);
+  console.log(`   - 1 traduction de langue des signes`);
   console.log(`   - 1 traduction exemple`);
   console.log(`\n👉 Tu peux maintenant te connecter avec test@example.com / password123`);
 }
