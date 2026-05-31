@@ -10,9 +10,15 @@ export async function GET() {
   const currentUser = await prisma.user.findUnique({ where: { email: session.user!.email! } });
   if (currentUser?.role !== 'ADMIN') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
 
+  const userSelect = { id: true, email: true, name: true, status: true, role: true, createdAt: true, updatedAt: true };
+
   const [users, translations, signs] = await Promise.all([
-    prisma.user.findMany({ orderBy: { createdAt: 'desc' } }),
-    prisma.translation.findMany({ include: { user: true }, orderBy: { createdAt: 'desc' }, take: 50 }),
+    prisma.user.findMany({ select: userSelect, orderBy: { createdAt: 'desc' } }),
+    prisma.translation.findMany({
+      include: { user: { select: userSelect } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    }),
     prisma.sign.findMany({ orderBy: { word: 'asc' } }),
   ]);
 

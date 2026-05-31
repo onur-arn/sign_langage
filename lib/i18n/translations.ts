@@ -29,7 +29,8 @@ export const translations = {
       loginSubtitle: "Access your account",
       registerTitle: "Create Account",
       registerSubtitle: "Start your experience",
-      name: "Surname & Name",
+      firstName: "First Name",
+      lastName: "Last Name",
       email: "Email",
       password: "Password",
       confirmPassword: "Confirm Password",
@@ -49,6 +50,15 @@ export const translations = {
       successBodyBefore: "Your request is",
       successPending: "pending administrator approval",
       successBodyAfter: "You will receive an email once your account is approved.",
+    },
+    // About
+    about: {
+      carriedBy: "A project carried by",
+      description: "This initiative was created to support deaf and hard-of-hearing people by making communication more accessible through sign language. It also benefits anyone who has difficulty communicating in writing.",
+      tagDeaf: "Deaf & hard of hearing",
+      tagMute: "Non-verbal",
+      tagMobility: "Reduced mobility",
+      visit: "Visit website",
     },
     // Dashboard
     dashboard: {
@@ -79,6 +89,8 @@ export const translations = {
       voiceClear: "Clear",
       voiceListening: "Listening...",
       voiceTranscript: "Transcript",
+      camClose: "Close-up view",
+      camGeneral: "General view",
     },
     // Admin
     admin: {
@@ -132,7 +144,7 @@ export const translations = {
       titleBold: "des Signes",
       subtitle: "Intelligence artificielle et vidéos authentiques pour une communication inclusive",
       cta: "S'inscrire",
-      login: "Connexion",
+      login: "Se connecter",
     },
     features: {
       pdf: {
@@ -154,7 +166,8 @@ export const translations = {
       loginSubtitle: "Accédez à votre traducteur",
       registerTitle: "Créer un compte",
       registerSubtitle: "Commencez votre expérience",
-      name: "Prénom & Nom",
+      firstName: "Prénom",
+      lastName: "Nom",
       email: "Email",
       password: "Mot de passe",
       confirmPassword: "Confirmer le mot de passe",
@@ -174,6 +187,15 @@ export const translations = {
       successBodyBefore: "Votre demande est",
       successPending: "en attente de validation de la part de l'administrateur",
       successBodyAfter: "Vous recevrez un email dès que votre compte sera approuvé.",
+    },
+    // About
+    about: {
+      carriedBy: "Un projet porté par",
+      description: "Cette initiative a été créée pour soutenir les personnes sourdes et malentendantes en rendant la communication plus accessible grâce à la langue des signes. Elle bénéficie également à toute personne ayant des difficultés à communiquer à l'écrit.",
+      tagDeaf: "Sourds & malentendants",
+      tagMute: "Muets",
+      tagMobility: "Mobilité réduite",
+      visit: "Visiter le site",
     },
     // Dashboard
     dashboard: {
@@ -204,6 +226,8 @@ export const translations = {
       voiceClear: "Effacer",
       voiceListening: "Écoute en cours...",
       voiceTranscript: "Transcription",
+      camClose: "Vue rapprochée",
+      camGeneral: "Vue générale",
     },
     // Admin
     admin: {
@@ -279,7 +303,8 @@ export const translations = {
       loginSubtitle: "Çevirmeninize erişin",
       registerTitle: "Hesap Oluştur",
       registerSubtitle: "Deneyiminize başlayın",
-      name: "İsim & Soyisim",
+      firstName: "Ad",
+      lastName: "Soyad",
       email: "E-posta",
       password: "Şifre",
       confirmPassword: "Şifreyi Onayla",
@@ -299,6 +324,15 @@ export const translations = {
       successBodyBefore: "İsteğiniz",
       successPending: "yönetici onayı bekliyor",
       successBodyAfter: "Hesabınız onaylandığında bir e-posta alacaksınız.",
+    },
+    // About
+    about: {
+      carriedBy: "Bu projeyi yürüten kuruluşlar",
+      description: "Bu girişim; sağır ve işitme güçlüğü çeken bireylerin iletişimini işaret dili aracılığıyla daha erişilebilir kılmak amacıyla oluşturulmuştur. Aynı zamanda yazılı iletişimde güçlük çeken herkese de fayda sağlamaktadır.",
+      tagDeaf: "Sağır & işitme güçlüğü",
+      tagMute: "Dilsiz",
+      tagMobility: "Hareket kısıtlılığı",
+      visit: "Siteyi ziyaret et",
     },
     // Dashboard
     dashboard: {
@@ -329,6 +363,8 @@ export const translations = {
       voiceClear: "Temizle",
       voiceListening: "Dinleniyor...",
       voiceTranscript: "Transkript",
+      camClose: "Yakın görünüm",
+      camGeneral: "Genel görünüm",
     },
     // Admin
     admin: {

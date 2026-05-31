@@ -1,21 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { sendStatusEmail } from '@/lib/email';
+import { validateApprovalToken } from '@/lib/approval-token';
 
-// GET : appelé depuis le lien dans l'email
+// GET : appelé depuis le lien dans l'email (token HMAC signé, expiration 48h)
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId');
-  const action = searchParams.get('action'); // 'approve' | 'reject'
-  const secret = searchParams.get('secret');
+  const token = searchParams.get('token');
 
-  if (secret !== process.env.ADMIN_SECRET) {
-    return new NextResponse('Non autorisé', { status: 401 });
-  }
-  if (!userId || !action) {
-    return new NextResponse('Paramètres manquants', { status: 400 });
+  if (!token) {
+    return new NextResponse('Lien invalide', { status: 400 });
   }
 
+  const payload = validateApprovalToken(token);
+  if (!payload) {
+    return new NextResponse('Lien invalide ou expiré', { status: 401 });
+  }
+
+  const { userId, action } = payload;
   const status = action === 'approve' ? 'APPROVED' : 'REJECTED';
   const user = await prisma.user.update({
     where: { id: userId },
@@ -39,8 +43,16 @@ export async function GET(req: NextRequest) {
 
 // POST : appelé depuis le panneau admin
 export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+
+  const currentUser = await prisma.user.findUnique({ where: { email: session.user!.email! } });
+  if (currentUser?.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+  }
+
   const { userId, action } = await req.json();
-  if (!userId || !action) {
+  if (!userId || !['approve', 'reject'].includes(action)) {
     return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 });
   }
 

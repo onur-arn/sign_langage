@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#7eccd8"/>
+      <stop offset="100%" stop-color="#3d8fa0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Fond cercle turquoise -->
+  <circle cx="256" cy="256" r="256" fill="url(#bg)"/>
+
+  <!-- Main gauche -->
+  <g fill="white" opacity="0.95">
+    <!-- Paume gauche -->
+    <ellipse cx="178" cy="295" rx="52" ry="40" transform="rotate(-15 178 295)"/>
+    <!-- Pouce gauche -->
+    <ellipse cx="134" cy="272" rx="22" ry="13" transform="rotate(-40 134 272)"/>
+    <!-- Index gauche -->
+    <rect x="164" y="218" width="22" height="58" rx="11" transform="rotate(10 164 218)"/>
+    <!-- Majeur gauche -->
+    <rect x="188" y="210" width="22" height="65" rx="11" transform="rotate(5 188 210)"/>
+    <!-- Annulaire gauche -->
+    <rect x="211" y="218" width="20" height="58" rx="10" transform="rotate(0 211 218)"/>
+    <!-- Auriculaire gauche -->
+    <rect x="232" y="228" width="18" height="48" rx="9" transform="rotate(-5 232 228)"/>
+  </g>
+
+  <!-- Main droite (miroir) -->
+  <g fill="white" opacity="0.95" transform="scale(-1,1) translate(-512,0)">
+    <!-- Paume droite -->
+    <ellipse cx="178" cy="295" rx="52" ry="40" transform="rotate(-15 178 295)"/>
+    <!-- Pouce droite -->
+    <ellipse cx="134" cy="272" rx="22" ry="13" transform="rotate(-40 134 272)"/>
+    <!-- Index droite -->
+    <rect x="164" y="218" width="22" height="58" rx="11" transform="rotate(10 164 218)"/>
+    <!-- Majeur droite -->
+    <rect x="188" y="210" width="22" height="65" rx="11" transform="rotate(5 188 210)"/>
+    <!-- Annulaire droite -->
+    <rect x="211" y="218" width="20" height="58" rx="10" transform="rotate(0 211 218)"/>
+    <!-- Auriculaire droite -->
+    <rect x="232" y="228" width="18" height="48" rx="9" transform="rotate(-5 232 228)"/>
+  </g>
+
+  <!-- Arc décoratif bas -->
+  <path d="M 156 340 Q 256 390 356 340" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.7"/>
+</svg>

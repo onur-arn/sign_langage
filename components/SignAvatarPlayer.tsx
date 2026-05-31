@@ -1,16 +1,71 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
+import { Vector3 } from 'three';
 import SignLanguageAvatar, { type SignFrame } from './SignLanguageAvatar';
-import { segmentInput } from '@/lib/normalize';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useDarkMode } from '@/contexts/DarkModeContext';
+
+type CameraView = 'close' | 'general';
+
+const CAMERA_PRESETS: Record<CameraView, { pos: [number, number, number]; target: [number, number, number]; fov: number }> = {
+  close:   { pos: [0, 0.7, 2.2], target: [0, 0.3, 0], fov: 45 },
+  general: { pos: [0, 1.0, 2.8], target: [0, 0.0, 0], fov: 55 },
+};
+
+function CameraController({ view }: { view: CameraView }) {
+  const { camera } = useThree();
+  const controlsRef = useRef<any>(null);
+  const isAnimating = useRef(false);
+  const isFirstRender = useRef(true);
+  const targetPos = useRef(new Vector3(...CAMERA_PRESETS[view].pos));
+  const targetLook = useRef(new Vector3(...CAMERA_PRESETS[view].target));
+
+  useEffect(() => {
+    const p = CAMERA_PRESETS[view];
+    targetPos.current.set(...p.pos);
+    targetLook.current.set(...p.target);
+    (camera as any).fov = p.fov;
+    (camera as any).updateProjectionMatrix?.();
+    if (isFirstRender.current) {
+      camera.position.set(...p.pos);
+      if (controlsRef.current) {
+        controlsRef.current.target.set(...p.target);
+        controlsRef.current.update();
+      }
+      isFirstRender.current = false;
+      return;
+    }
+    isAnimating.current = true;
+  }, [view, camera]);
+
+  useFrame(() => {
+    if (!isAnimating.current) return;
+    camera.position.lerp(targetPos.current, 0.08);
+    if (controlsRef.current) {
+      controlsRef.current.target.lerp(targetLook.current, 0.08);
+      controlsRef.current.update();
+    }
+    if (camera.position.distanceTo(targetPos.current) < 0.005) {
+      camera.position.copy(targetPos.current);
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(targetLook.current);
+        controlsRef.current.update();
+      }
+      isAnimating.current = false;
+    }
+  });
+
+  return <OrbitControls ref={controlsRef} enablePan={false} minDistance={1.0} maxDistance={6} />;
+}
 
 function signIdToLabel(id: string): string {
   return id
     .replace(/^\d+_/, '')
     .replace(/_\d+$/, '')
+    .replace(/_rsquo_/g, "'")
     .replace(/_/g, ' ')
     .replace(/\b\w/, c => c.toUpperCase());
 }
@@ -617,7 +672,7 @@ async function loadSign(id: string): Promise<{ frames: SignFrame[]; fps: number 
       ];
   for (const url of candidates) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { cache: 'no-cache' });
       if (res.ok) return await parseSign(res);
     } catch { /* CORS ou erreur réseau, essai suivant */ }
   }
@@ -626,16 +681,29 @@ async function loadSign(id: string): Promise<{ frames: SignFrame[]; fps: number 
 
 export default function SignAvatarPlayer({ text, ts, language = 'fr' }: { text: string; ts: number; language?: string }) {
   const { t } = useLanguage();
+  const { dark } = useDarkMode();
+  const canvasBg = 'bg-slate-900';
   const [frames, setFrames] = useState<SignFrame[]>([]);
   const [fps, setFps] = useState(25);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [activeSign, setActiveSign] = useState<string | null>(null);
+  const [allSigns, setAllSigns] = useState<string[]>([]);
+  const [currentSignIdx, setCurrentSignIdx] = useState(-1);
   const [status, setStatus] = useState<'idle' | 'loading' | 'playing' | 'done'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [cameraView, setCameraView] = useState<CameraView>('close');
+  const [avatarLoaded, setAvatarLoaded] = useState(false);
   const [idleFrame, setIdleFrame] = useState<SignFrame | null>(null);
   const [transitionFrame, setTransitionFrame] = useState<SignFrame | null>(null);
   const preloadCache = useRef<Map<string, { frames: SignFrame[]; fps: number }>>(new Map());
   const queueRef = useRef<string[]>([]);
+  const originalSignsRef = useRef<string[]>([]);
+  const signIdxRef = useRef(-1);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [words, setWords] = useState<string[]>([]);
+  const [showWord, setShowWord] = useState(false);
+  const originalWordsRef = useRef<string[]>([]);
 
   useEffect(() => {
     loadSign('comprendre')
@@ -656,16 +724,19 @@ export default function SignAvatarPlayer({ text, ts, language = 'fr' }: { text: 
       .catch(() => {});
   }, []);
 
-  const playSign = async (id: string, keepPlaying = false) => {
+  const playSign = async (id: string, keepPlaying = false, idx = 0) => {
     setError(null);
     setStatus('loading');
+    setIsPaused(false);
     if (!keepPlaying) setIsPlaying(false);
     setActiveSign(id);
+    signIdxRef.current = idx;
+    setCurrentSignIdx(idx);
     try {
       const cached = preloadCache.current.get(id);
       const data = cached ?? await loadSign(id);
       if (!cached) preloadCache.current.set(id, data);
-      setFrames(data.frames);
+      setFrames([...data.frames]);
       setFps(data.fps);
       setIsPlaying(true);
       setStatus('playing');
@@ -682,74 +753,244 @@ export default function SignAvatarPlayer({ text, ts, language = 'fr' }: { text: 
     if (!ts) return;
     const raw = text.trim();
     if (!raw) return;
-    const signs = segmentInput(raw, language);
-    if (signs.length === 0) {
-      setError(`${t.dashboard.avatarNoSign} "${raw}"`);
-      return;
-    }
-    setError(null);
-    queueRef.current = signs.slice(1);
-    playSign(signs[0]);
+    setStatus('loading');
+    fetch('/api/segment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: raw, language }),
+    })
+      .then(r => r.json())
+      .then(({ signs, words: wordLabels }) => {
+        if (!signs || signs.length === 0) {
+          setError(`${t.dashboard.avatarNoSign} "${raw}"`);
+          setStatus('idle');
+          return;
+        }
+        setError(null);
+        originalSignsRef.current = signs;
+        originalWordsRef.current = wordLabels ?? [];
+        setAllSigns(signs);
+        setWords(wordLabels ?? []);
+        queueRef.current = signs.slice(1);
+        playSign(signs[0], false, 0);
+      })
+      .catch(() => {
+        setError('Erreur lors de la segmentation');
+        setStatus('idle');
+      });
   }, [ts]);
 
   const handleDone = () => {
     if (queueRef.current.length > 0) {
-      playSign(queueRef.current.shift()!, true);
+      const nextIdx = signIdxRef.current + 1;
+      playSign(queueRef.current.shift()!, true, nextIdx);
     } else {
       setIsPlaying(false);
       setStatus('done');
     }
   };
 
+  const handlePlayPause = () => {
+    if (status === 'idle' || status === 'loading' || allSigns.length === 0) return;
+    if (status === 'done') {
+      handleReplay();
+      return;
+    }
+    if (isPaused) {
+      setIsPaused(false);
+      setIsPlaying(true);
+    } else {
+      setIsPaused(true);
+      setIsPlaying(false);
+    }
+  };
+
+  const handleReplay = () => {
+    if (originalSignsRef.current.length === 0) return;
+    const signs = originalSignsRef.current;
+    queueRef.current = signs.slice(1);
+    setWords(originalWordsRef.current);
+    setIsPaused(false);
+    setError(null);
+    playSign(signs[0], false, 0);
+  };
+
+  const handleStop = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+    setIsPlaying(false);
+    setIsPaused(false);
+    setStatus('idle');
+    setAllSigns([]);
+    setFrames([]);
+    setCurrentSignIdx(-1);
+    setWords([]);
+    queueRef.current = [];
+    originalSignsRef.current = [];
+    originalWordsRef.current = [];
+  };
+
+  const handleSpeak = () => {
+    if (!text.trim() || typeof window === 'undefined') return;
+    window.speechSynthesis.cancel();
+    if (isSpeaking) { setIsSpeaking(false); return; }
+    const utterance = new SpeechSynthesisUtterance(text.trim());
+    const langMap: Record<string, string> = { fr: 'fr-FR', en: 'en-GB', tr: 'tr-TR' };
+    utterance.lang = langMap[language] ?? 'fr-FR';
+    utterance.rate = 0.95;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const canPlay = allSigns.length > 0 && avatarLoaded;
+  const isActive = status === 'playing' || status === 'done' || isPaused;
+
   return (
-    <div className="flex flex-col gap-4 h-full">
+    <div className="flex flex-col gap-3 h-full">
       {/* Canvas avatar */}
-      <div className="relative rounded-2xl overflow-hidden bg-slate-900" style={{ height: '580px' }}>
-        <Canvas camera={{ position: [0, 0.5, 3], fov: 50 }} shadows>
+      <div className="relative rounded-2xl overflow-hidden bg-slate-900" style={{ height: '540px' }}>
+        {!avatarLoaded && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-slate-900 rounded-2xl">
+            <div className="relative w-20 h-20">
+              <div className="absolute inset-0 rounded-full border-4 border-slate-700" />
+              <div className="absolute inset-0 rounded-full border-4 border-t-[#5ba4b0] animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg className="w-8 h-8 text-[#5ba4b0] opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-sm font-medium text-slate-400 animate-pulse">Chargement de l'avatar…</p>
+          </div>
+        )}
+
+        <Canvas camera={{ position: [0, 0.7, 2.2], fov: 45 }} shadows>
           <Suspense fallback={null}>
             <ambientLight intensity={0.6} />
             <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
-            <Environment preset="city" />
+            <Environment files="/potsdamer_platz_1k.hdr" />
             <SignLanguageAvatar
               frames={frames}
               isPlaying={isPlaying}
+              paused={isPaused}
               fps={fps}
               onDone={handleDone}
+              onLoad={() => setAvatarLoaded(true)}
               idleFrame={idleFrame}
               transitionFrame={transitionFrame}
               activeSign={activeSign}
             />
-            <OrbitControls
-              enablePan={false}
-              minDistance={1.2}
-              maxDistance={5}
-              target={[0, 0.2, 0]}
-            />
+            <CameraController view={cameraView} />
           </Suspense>
         </Canvas>
 
-          {/* Badge statut (coin haut-droit) */}
+        {/* Camera view buttons (coin bas-gauche) */}
+        <div className="absolute bottom-3 left-3 flex flex-col gap-1.5 z-10">
+          {([
+            { id: 'close'   as CameraView, label: t.dashboard.camClose },
+            { id: 'general' as CameraView, label: t.dashboard.camGeneral },
+          ]).map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setCameraView(id)}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shadow backdrop-blur-sm cursor-pointer"
+              style={cameraView === id
+                ? { background: '#5ba4b0', color: '#ffffff' }
+                : { background: 'rgba(0,0,0,0.45)', color: 'rgba(255,255,255,0.8)' }
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Badge statut (coin haut-droit) */}
         <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold ${
-          status === 'loading' ? 'bg-amber-500 text-white' :
-          status === 'done'    ? 'bg-emerald-500 text-white' :
-          status === 'idle'    ? 'bg-slate-700 text-slate-300' : 'bg-transparent'
+          status === 'loading'  ? 'bg-amber-500 text-white' :
+          status === 'done'     ? 'bg-emerald-500 text-white' :
+          isPaused              ? 'bg-slate-600 text-white' :
+          status === 'idle'     ? 'bg-slate-700 text-slate-300' : 'bg-transparent'
         }`}>
           {status === 'idle'    && t.dashboard.avatarReady}
           {status === 'loading' && t.dashboard.avatarLoading}
           {status === 'done'    && t.dashboard.avatarDone}
+          {isPaused             && 'Pause'}
         </div>
       </div>
 
-      {/* Mot courant sous l'avatar */}
-      <div className="h-10 flex items-center justify-center">
-        {status === 'playing' && activeSign && (
+      {/* Barre de contrôle */}
+      <div className="flex items-center gap-2 px-1">
+        {/* Replay */}
+        <button
+          onClick={handleReplay}
+          disabled={!canPlay || status === 'loading'}
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 shadow cursor-pointer shrink-0"
+          style={{ background: 'rgba(91,164,176,0.15)', color: '#5ba4b0' }}
+          title="Rejouer"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+          </svg>
+        </button>
+
+        {/* Stop / Reset */}
+        <button
+          onClick={handleStop}
+          disabled={status === 'idle'}
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 shadow cursor-pointer shrink-0"
+          style={{ background: status !== 'idle' ? 'rgba(239,68,68,0.15)' : 'rgba(91,164,176,0.1)', color: status !== 'idle' ? '#ef4444' : '#5ba4b0' }}
+          title="Arrêter et réinitialiser"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <rect x="6" y="6" width="12" height="12" rx="1" />
+          </svg>
+        </button>
+
+        {/* Son / TTS */}
+        <button
+          onClick={handleSpeak}
+          disabled={!text.trim()}
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 shadow cursor-pointer shrink-0"
+          style={{ background: isSpeaking ? '#5ba4b0' : 'rgba(91,164,176,0.15)', color: isSpeaking ? 'white' : '#5ba4b0' }}
+          title={isSpeaking ? 'Arrêter la lecture' : 'Lire la phrase'}
+        >
+          {isSpeaking ? (
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+          )}
+        </button>
+
+        {/* Word toggle */}
+        <button
+          onClick={() => setShowWord(v => !v)}
+          disabled={!canPlay}
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 shadow cursor-pointer shrink-0"
+          style={{ background: showWord ? '#5ba4b0' : 'rgba(91,164,176,0.15)', color: showWord ? 'white' : '#5ba4b0' }}
+          title="Afficher le mot en cours"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h6m-6 4h10" />
+          </svg>
+        </button>
+
+        {/* Current word display */}
+        {showWord && currentSignIdx >= 0 && words[currentSignIdx] && (
           <span
-            className="text-2xl font-semibold tracking-wide transition-all"
-            style={{ color: '#5ba4b0' }}
+            className="ml-auto px-4 py-2 rounded-xl font-semibold text-sm capitalize transition-all"
+            style={{ background: 'rgba(91,164,176,0.12)', color: '#5ba4b0', border: '1px solid rgba(91,164,176,0.25)' }}
           >
-            {signIdToLabel(activeSign)}
+            {words[currentSignIdx]}
           </span>
         )}
+
       </div>
 
       {error && (

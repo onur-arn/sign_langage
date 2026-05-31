@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Providers from "@/components/Providers";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { DarkModeProvider } from "@/contexts/DarkModeContext";
+import NavigationProgress from "@/components/NavigationProgress";
 import "./globals.css";
 
 const inter = Inter({
@@ -11,8 +12,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SignLanguage - AI Translation",
-  description: "AI-powered sign language translation with authentic video signs",
+  title: "Langue des Signes",
+  description: "Traduction en langue des signes assistée par intelligence artificielle",
 };
 
 export default function RootLayout({
@@ -22,10 +23,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={inter.variable}>
+      <head>
+        <link rel="preload" href="/avatar.glb" as="fetch" crossOrigin="anonymous" />
+      </head>
       <body className="antialiased font-sans">
         <Providers>
           <LanguageProvider>
             <DarkModeProvider>
+              <NavigationProgress />
               {children}
             </DarkModeProvider>
           </LanguageProvider>

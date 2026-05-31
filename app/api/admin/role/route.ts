@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   // Protège le compte principal
   const targetUser = await prisma.user.findUnique({ where: { id: userId } });
-  if (targetUser?.email === 'secretaire@youthstation.org') {
+  if (targetUser?.email === process.env.PROTECTED_ADMIN_EMAIL) {
     return NextResponse.json({ error: 'Ce compte ne peut pas être modifié' }, { status: 403 });
   }
 

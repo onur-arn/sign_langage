@@ -35887,30 +35887,1124 @@ function numToSigns(n: number): string[] {
   return parts
 }
 
+// Mots ignorés lors de l'indexation individuelle des labels multi-mots
+const LABEL_STOP_WORDS = new Set([
+  'a','an','the','of','in','on','at','to','for','and','or','but','with',
+  'by','from','as','is','it','its','be','are','was','were','not','no',
+  'de','du','le','la','les','un','une','des','et','ou','en','au','aux',
+])
+
 function buildReverseMap(labels: Record<string, string>): Map<string, string> {
   const map = new Map<string, string>()
+
   for (const [signId, label] of Object.entries(labels)) {
     const norm = removeAccents(label.toLowerCase().trim())
     if (!map.has(norm)) map.set(norm, signId)
   }
+
+  // Deuxième passe : indexer aussi chaque mot individuel des labels multi-mots.
+  // Cela couvre les cas où l'utilisateur tape un seul mot ("coffee") alors que
+  // le label est un groupe ("Coffee maker"). Le mot seul n'est ajouté que s'il
+  // n'est pas déjà mappé et n'est pas un mot vide (stop word).
+  for (const [signId, label] of Object.entries(labels)) {
+    const parts = removeAccents(label.toLowerCase().trim()).split(/\s+/)
+    if (parts.length < 2) continue
+    for (const part of parts) {
+      if (part.length > 2 && !LABEL_STOP_WORDS.has(part) && !map.has(part)) {
+        map.set(part, signId)
+      }
+    }
+  }
+
   return map
 }
 
 const EN_DYNAMIC = buildReverseMap(SIGN_LABELS_EN)
 const TR_DYNAMIC = buildReverseMap(SIGN_LABELS_TR)
 
-function lookupWord(word: string, language: string): string | null {
-  const norm = removeAccents(word.toLowerCase().trim())
-  if (!norm) return null
+// Un mot composant une clé multi-mots n'est mappé que s'il pointe vers UN SEUL signe.
+// Cela évite les faux positifs : "pas" apparaît dans 25 clés différentes → ignoré.
+// "moche" apparaît dans une seule clé "affreux laid moche vilain" → mappé correctement.
+const FR_SYNONYM_MAP = ((): Map<string, string> => {
+  // word → { signId, labelLen } : on retient le signe dont le label est le plus court
+  // (label le plus spécifique) pour gérer les cas ambigus comme "mère" dans "maman maternel mère"
+  const wordBest = new Map<string, { signId: string; labelLen: number }>()
 
+  function tryAdd(normPart: string, rawPart: string, signId: string, labelLen: number) {
+    if (normPart.length > 2 && normPart !== 'rsquo' && !FR_REVERSE[normPart] && !FR_REVERSE[rawPart]) {
+      const existing = wordBest.get(normPart)
+      if (!existing || labelLen < existing.labelLen) {
+        wordBest.set(normPart, { signId, labelLen })
+      }
+    }
+  }
+
+  for (const [label, signId] of Object.entries(FR_REVERSE)) {
+    // reconstruire les formes apostrophées : "d rsquo accord" → "d'accord"
+    const cleanLabel = label.replace(/(\S+)\s+rsquo\s+(\S+)/g, "$1'$2")
+    const parts = cleanLabel.split(' ')
+    const labelLen = parts.length
+
+    for (const part of parts) {
+      const normPart = removeAccents(part)
+      tryAdd(normPart, part, signId, labelLen)
+      // si le mot contient une apostrophe reconstituée (ex : "d'accord"), ajouter aussi la forme après l'apostrophe
+      if (part.includes("'")) {
+        const afterApostrophe = part.split("'")[1]
+        if (afterApostrophe) tryAdd(removeAccents(afterApostrophe), afterApostrophe, signId, labelLen)
+      }
+    }
+  }
+
+  const map = new Map<string, string>()
+  for (const [word, { signId }] of wordBest) {
+    map.set(word, signId)
+  }
+  return map
+})()
+
+// Locutions figées avec apostrophe (ex : "j'en ai marre", "c'est la vie").
+// Les clés sont la forme élisée et tokenisée, identique aux tokens produits par slotsFromTokens.
+const FR_PHRASE_MAP = ((): Map<string, string> => {
+  const map = new Map<string, string>()
+  for (const [label, signId] of Object.entries(FR_REVERSE)) {
+    const parts = label.split(' ')
+    if (parts.length < 2) continue
+    // Reconstruire les apostrophes depuis rsquo
+    const withApostrophe = label.replace(/(\S+)\s+rsquo\s+(\S+)/g, "$1'$2")
+    // Appliquer la même expansion d'élision que sur l'input utilisateur
+    const expanded = expandFrenchElisions(withApostrophe)
+    // Normaliser chaque token
+    const tokens = expanded.toLowerCase().split(/\s+/).filter(Boolean)
+      .map(t => removeAccents(t.replace(/[^a-z0-9]/g, '')))
+      .filter(t => t.length > 0)
+    if (tokens.length < 2) continue
+    const key = tokens.join(' ')
+    if (!map.has(key)) map.set(key, signId)
+  }
+  return map
+})()
+
+// Mots courants isolés absents du dataset → signe le plus proche
+const FR_PRONOUN_MAP: Record<string, string> = {
+  // 2e personne
+  'tu':    'toi_tu',     'toi': 'toi_tu',
+  'vous':  'toi_tu',     'vos': 'votre_vous', 'votre': 'votre_vous',
+  // 1re personne pluriel
+  'nous':  'notre_nous', 'on': 'notre_nous', 'nos': 'notre_nous',
+  // 3e personne pluriel
+  'leur':  'elles_eux_iels_ils', 'leurs': 'elles_eux_iels_ils',
+  // Déterminants possessifs courts (2 chars, ignorés par FR_SYNONYM_MAP)
+  'ma':    'ma_mes_mien_mon_2',
+  'ta':    'ta_tes_tien_ton_1',
+  'sa':    'sa_ses_sien_son_2',
+  // Démonstratifs
+  'ce':    'ca_ce_ceci_cela_celui', 'cet':   'ca_ce_ceci_cela_celui',
+  'cette': 'ca_ce_ceci_cela_celui', 'ces':   'ca_ce_ceci_cela_celui',
+}
+
+const EN_PRONOUN_MAP: Record<string, string> = {
+  // 1re personne sg (i → EN_REMAP; me ici en fallback)
+  'me':    'je_moi',
+  // 3e personne sg
+  'he':    'elle_iel_il_lui', 'him':   'elle_iel_il_lui',
+  'she':   'elle_iel_il_lui', 'her':   'elle_iel_il_lui',
+  // 2e personne
+  'you':   'toi_tu',     'your':  'votre_vous',
+  'yours': 'votre_vous', 'thee':  'toi_tu',
+  // 1re personne pluriel
+  'we':    'notre_nous', 'us':    'notre_nous', 'our': 'notre_nous', 'ours': 'notre_nous',
+  // 3e personne pluriel
+  'they':  'elles_eux_iels_ils', 'them':  'elles_eux_iels_ils',
+  'their': 'elles_eux_iels_ils', 'theirs':'elles_eux_iels_ils',
+  // Possessifs
+  'my':    'ma_mes_mien_mon_2', 'mine':  'ma_mes_mien_mon_2',
+  'his':   'sa_ses_sien_son_2', 'its':   'sa_ses_sien_son_2',
+  // Démonstratifs
+  'this':  'ca_ce_ceci_cela_celui', 'that':  'ca_ce_ceci_cela_celui',
+  'these': 'ca_ce_ceci_cela_celui', 'those': 'ca_ce_ceci_cela_celui',
+}
+
+const TR_PRONOUN_MAP: Record<string, string> = {
+  // 1re personne sg (ben/beni → TR_REMAP pour overrider TR_REVERSE; autres formes ici)
+  'beni':  'je_moi', 'bana':  'je_moi', 'benim': 'ma_mes_mien_mon_2',
+  // 2e personne sg informelle (sen → TR_REMAP ; formes casuelles ici)
+  'seni':  'toi_tu', 'sana':  'toi_tu', 'senin': 'toi_tu',
+  // 2e personne formelle / plurielle
+  'siz':   'votre_vous', 'sizi':  'votre_vous', 'sizin': 'votre_vous',
+  'size':  'votre_vous',
+  // 3e personne sg (o → TR_REMAP ; formes casuelles ici)
+  'onu':   'elle_iel_il_lui', 'onun':  'elle_iel_il_lui',
+  'ona':   'elle_iel_il_lui',
+  // 1re personne pluriel
+  'biz':   'notre_nous', 'bizi':  'notre_nous', 'bizim': 'notre_nous',
+  'bize':  'notre_nous',
+  // 3e personne pluriel
+  'onlar':   'elles_eux_iels_ils', 'onlari':  'elles_eux_iels_ils',
+  'onlarin': 'elles_eux_iels_ils', 'onlara':  'elles_eux_iels_ils',
+  // Démonstratifs
+  'bunu':  'ca_ce_ceci_cela_celui', 'bunun': 'ca_ce_ceci_cela_celui',
+  'bunlar':'ca_ce_ceci_cela_celui', 'sunu':  'ca_ce_ceci_cela_celui',
+  'sunlar':'ca_ce_ceci_cela_celui',
+}
+
+/**
+ * Génère des candidats infinitifs à partir d'une forme conjuguée française.
+ * Couvre verbes en -er, -ir (avec -iss-) et -re (avec alternance v/g).
+ */
+function frenchLemmatize(word: string): string[] {
+  const candidates = new Set<string>()
+  const MIN_STEM = 3
+
+  const rules: [string, string][] = [
+    // -er : conditionnel / futur (plus longs d'abord)
+    ['eraient', 'er'], ['eriez', 'er'], ['erions', 'er'], ['erait', 'er'], ['erais', 'er'],
+    ['eront', 'er'], ['erons', 'er'], ['erez', 'er'], ['erai', 'er'], ['eras', 'er'], ['era', 'er'],
+    // -er : imparfait
+    ['aient', 'er'], ['iez', 'er'], ['ions', 'er'], ['ait', 'er'], ['ais', 'er'],
+    // -er : présent / gérondif / participe passé
+    ['ant', 'er'], ['ent', 'er'], ['ons', 'er'], ['ez', 'er'], ['es', 'er'], ['ee', 'er'], ['e', 'er'],
+
+    // -ir en -iss- (finir, choisir…)
+    ['issaient', 'ir'], ['issiez', 'ir'], ['issions', 'ir'], ['issait', 'ir'], ['issais', 'ir'],
+    ['issant', 'ir'], ['issent', 'ir'], ['issons', 'ir'], ['issez', 'ir'], ['isse', 'ir'],
+    // -ir : futur / conditionnel
+    ['iraient', 'ir'], ['iriez', 'ir'], ['irions', 'ir'], ['irait', 'ir'], ['irais', 'ir'],
+    ['iront', 'ir'], ['irons', 'ir'], ['irez', 'ir'], ['irai', 'ir'], ['iras', 'ir'], ['ira', 'ir'],
+    // -ir : présent / imparfait simple
+    ['issait', 'ir'], ['it', 'ir'], ['is', 'ir'],
+    // -ir : participe passé (dormi→dormir, fini→finir, choisi→choisir, sorti→sortir)
+    ['ie', 'ir'], ['i', 'ir'],
+
+    // -re : alternance radicale en -v- (inscrire, écrire, vivre…)
+    ['vaient', 're'], ['viez', 're'], ['vions', 're'], ['vait', 're'], ['vais', 're'],
+    ['vent', 're'], ['vons', 're'], ['vez', 're'],
+    // -re : futur / conditionnel
+    ['raient', 're'], ['riez', 're'], ['rions', 're'], ['rait', 're'], ['rais', 're'],
+    ['ront', 're'], ['rons', 're'], ['rez', 're'], ['rai', 're'], ['ras', 're'], ['ra', 're'],
+    // -re : présent (inscris, inscrit…)
+    ['s', 're'], ['t', 're'],
+  ]
+
+  for (const [suffix, ending] of rules) {
+    if (word.endsWith(suffix)) {
+      const stem = word.slice(0, -suffix.length)
+      if (stem.length >= MIN_STEM) candidates.add(stem + ending)
+    }
+  }
+
+  return [...candidates].filter(c => c !== word)
+}
+
+// Mots dont le signe dans le dataset est un faux ami → redirigés vers le bon signe
+const FR_REMAP: Record<string, string> = {
+  'car':          'parce_que',         // conjonction "parce que" → dataset le mappait à "voiture"
+  'pas':          'non_merci_1',        // négation LSF → signe NON
+  'non':          'non_merci_1',        // "non" standalone → non merci (plus naturel que non_refuser)
+  'aujourd_hui':  'aujourdhui',         // protégé contre l'expansion d' → aujourd'hui restauré
+  // 2e personne → même signe CDN que "you"
+  'tu':           'toi_tu',
+  'toi':          'toi_tu',
+  'vous':         'toi_tu',
+  // Synonymes partageant un même signe dans le dataset
+  'salut':        'bonjour_1',
+  'gagner':       'gagner_reussir_vaincre_1_vainqueur_victoire',
+  'reussir':      'gagner_reussir_vaincre_1_vainqueur_victoire',
+  'vaincre':      'gagner_reussir_vaincre_1_vainqueur_victoire',
+  'victoire':     'gagner_reussir_vaincre_1_vainqueur_victoire',
+  'vainqueur':    'gagner_reussir_vaincre_1_vainqueur_victoire',
+}
+
+// ─── ASL : faux amis et remappages ─────────────────────────────────────────
+const EN_REMAP: Record<string, string> = {
+  // Pronoms / auxiliaires → faux amis dans EN_REVERSE
+  'i':       'je_moi',           // EN_REVERSE 'i' = lettre I
+  'not':     'non_merci_1',
+  'no':      'non_merci_1',
+  'saw':     'voir',             // EN_REVERSE 'saw' = scie (outil)
+  'can':     'pouvoir',          // EN_REVERSE 'can' = canette
+  // Faux amis critiques dans EN_REVERSE
+  'doing':   'faire_3',          // EN_REVERSE 'doing' = biche (biche = doe !) → faire
+  'new':     'nouveau',          // EN_REVERSE 'new'   = 9_neuf_1 (neuf = 9 ET new !) → nouveau
+  // Modaux ASL : signés par leur sens, pas comme auxiliaires
+  'would':   'pouvoir',          // would like → CAN/WANT
+  'could':   'pouvoir',          // could → CAN
+  'should':  'devoir_falloir_2', // should → MUST
+  'must':    'devoir_falloir_2', // must
+  'might':   'peut_etre_1',      // might → MAYBE
+  'shall':   'volonte',          // shall → WILL
+  // Contractions informelles
+  'gonna':   'aller_3',          // gonna go → GO
+  'gotta':   'devoir_falloir_2', // gotta → MUST
+  'wanna':   'vouloir',          // wanna → WANT
+  'kinda':   'peut_etre_1',      // kinda → MAYBE
+  'sorta':   'peut_etre_1',      // sorta → SOMEWHAT
+  // Adverbes intensifs absents du dataset
+  'perhaps': 'peut_etre_1',
+  'very':    'vraiment',
+  'actually':'vraiment',
+  // Faux amis de mots courants
+  'coffee':  'cafe',
+  'tea':     'the_boisson',
+  'juice':   'jus_1',
+  // Salutations / interjections
+  'hey':     'bonjour',
+  'hi':      'bonjour',
+  'bye':     'au_revoir',
+  'ok':      'bien_1',
+  'please':  'demander_1',
+  'thanks':  'merci',
+  'hate':    'ne_pas_aimer_detester',
+}
+
+// ─── TİD : faux amis et remappages ──────────────────────────────────────────
+const TR_REMAP: Record<string, string> = {
+  // Pronoms → faux amis dans TR_REVERSE
+  'ben':          'je_moi',           // TR_REVERSE 'ben' = lettre i_2
+  'sen':          'toi_tu',            // TR_REVERSE 'sen' = lettre u_1 → même signe CDN que "you"
+  'o':            'elle_iel_il_lui',  // TR_REVERSE 'o' = lettre o
+  // Négation
+  'degil':        'non_merci_1',      // değil = non/not
+  'hayir':        'non_merci_1',      // hayır = no
+  // ⚠ Corrections de bugs critiques (TR_REVERSE donne un signe erroné)
+  'iyi':          'bien_1',           // iyi = bon/bien (TR_REVERSE → amende !)
+  'yeni':         'nouveau',          // yeni = nouveau (TR_REVERSE → 9_neuf_1 !)
+  // Démonstratif
+  'bu':           'ca_ce_ceci_cela_celui', // bu = ce/ceci/ça
+  // Réponses de base
+  'evet':         'oui_1_affirmation',     // evet = oui
+  // Salutations et politesse absentes de TR_REVERSE
+  'selam':        'bonjour',          // selam = salut (informel)
+  'tesekkur':     'merci',            // teşekkür
+  'tesekkurler':  'merci',            // teşekkürler (pluriel)
+  'tesekkurem':   'merci',            // teşekkür ederim
+  'lutfen':       'demander_1',       // lütfen = s'il vous plaît
+  'ozur':         'pardon_2',         // özür = excuse/pardon
+  'hosca':        'au_revoir',        // hoşça (kal) = au revoir
+  // Fleurs
+  'gul':          'rose_1',           // gül = rose
+  'gulum':        'rose_1',           // gülüm = ma rose (terme affectueux)
+  'gullum':       'rose_1',           // güllüm = ma rose (variante familière)
+  // Traduction
+  'cevir':        'traduction_traduire_2', // çevir = traduire
+  'ceviri':       'traduction_traduire_2', // çeviri = traduction (forme isolée)
+}
+
+// ─── ASL : mots grammaticaux supprimés ──────────────────────────────────────
+// Articles (faux amis : a→1_un, the→la_1), copule, auxiliaires, pronoms réfléchis
+const EN_CONTEXTUAL_SKIP = new Set([
+  // Articles (faux amis dans EN_REVERSE)
+  'the', 'a', 'an',
+  // Copule be (supprimée en BSL ; faux ami : is→lettre i, being→abeille)
+  'is', 'are', 'was', 'were', 'am', 'be', 'been', 'being',
+  // Have auxiliaire (temps composés)
+  'has', 'had',
+  // Do : auxiliaire → ignoré (does→biche faux ami, did auxiliaire)
+  'do', 'does', 'did',
+  // Marqueur d'infinitif : "want TO go" → WANT GO en BSL
+  'to',
+  // Pronom impersonnel : "IT is cold" → COLD en BSL (mais 'its' = possessif → gardé)
+  'it',
+  // Conjonctions spatiales sans signe dans le dataset
+  'also', 'too',
+  // Prépositions remplacées par la grammaire spatiale en BSL (règle 02)
+  'at', 'of', 'on', 'in', 'for',
+  // Pronoms réfléchis (redondants en BSL)
+  'myself', 'yourself', 'himself', 'herself', 'itself', 'ourselves', 'themselves',
+])
+
+// ─── TİD : mots grammaticaux supprimés ───────────────────────────────────────
+// Conjonctions et postpositions sans signe propre en TİD
+// ⚠ Ne pas ajouter ici un mot qui a un signe dans TR_REVERSE (ama→mais, ne→quoi_2, ile→avec_2, veya→ou, kadar→jusque_1)
+const TR_CONTEXTUAL_SKIP = new Set([
+  // Article indéfini (n'a pas de signe propre en TİD — règle 02)
+  'bir',
+  // Conjonctions sans signe propre
+  've', 'ya', 'yahut', 'ki', 'fakat', 'lakin', 'ancak',
+  'cunku', 'zira', 'halbuki', 'oysa', 'hem',
+  // Postpositions sans équivalent direct
+  'icin', 'gibi', 'gore', 'beri', 'itibaren',
+  'uzerine', 'hakkinda', 'karsi', 'dolayi', 'ragmen',
+  // Particules copulatives / interrogatives isolées (suffixes détachés)
+  'mi', 'mu', 'dir', 'dur', 'tir', 'tur',
+])
+
+// Mots grammaticaux absents de la LSF ou faux-amis → ignorés individuellement
+// (ils peuvent encore participer à des groupes multi-mots : "de rien", "le temps"…)
+const FR_CONTEXTUAL_SKIP = new Set([
+  // Conjonctions sans signe propre
+  'or', 'ni', 'que', 'dont',
+  // Articles définis (jamais signés en LSF ; évite les faux-amis : la→note)
+  'le', 'la', 'les',
+  // Article indéfini/partitif pluriel (règle 02 LSF)
+  'des',
+  // Particule de négation (le sens est porté par "pas" → NÉGATION GRAMMAIRE)
+  'ne',
+  // Prépositions absorbées spatialement en LSF (règle 02)
+  // (évite aussi les faux-amis : à→lettre A, de→début de phrase)
+  'de', 'du', 'a',
+  // Prépositions spatiales supplémentaires (remplacées par la grammaire spatiale)
+  'sur', 'dans', 'par',
+  // Formes de ÊTRE (copule → supprimée en LSF ; évite faux-amis : est→est_1 orient., es→e_1 lettre)
+  'es', 'est', 'suis', 'sommes', 'etes', 'sont',
+  'etais', 'etait', 'etions', 'etiez', 'etaient',
+  'sera', 'seras', 'serons', 'serez', 'seront',
+  // Pronoms réfléchis/objets (redondants avec le sujet en LSF)
+  // "je me lève" → JE LEVER ; "tu t'appelles" → TOI APPELER
+  'me', 'te', 'se', 'y',
+  // Formes de AVOIR (auxiliaire → supprimé en LSF)
+  'ai', 'as', 'avons', 'avez', 'ont',
+  'avais', 'avait', 'avions', 'aviez', 'avaient',
+  'aurai', 'auras', 'aurons', 'aurez', 'auront',
+])
+
+// Participes passés et conjugaisons irrégulières absents du dataset
+const FR_IRREGULAR_MAP: Record<string, string> = {
+  // boire → bu, bue, bus, bues
+  'bu': 'boire', 'bue': 'boire', 'bus': 'boire', 'bues': 'boire',
+  // voir → vu, vue, vus, vues
+  'vu': 'voir', 'vue': 'voir', 'vus': 'voir', 'vues': 'voir',
+  // lire → lu, lue, lus, lues
+  'lu': 'lire', 'lue': 'lire', 'lus': 'lire', 'lues': 'lire',
+  // savoir → su, sue, sus, sues
+  'su': 'savoir', 'sue': 'savoir', 'sus': 'savoir', 'sues': 'savoir',
+  // pouvoir → pu
+  'pu': 'pouvoir',
+  // vouloir → voulu, voulue, voulus, voulues
+  'voulu': 'vouloir', 'voulue': 'vouloir', 'voulus': 'vouloir', 'voulues': 'vouloir',
+  // venir → venu, venue, venus, venues
+  'venu': 'venir', 'venue': 'venir', 'venus': 'venir', 'venues': 'venir',
+  // tenir → tenu, tenue, tenus, tenues
+  'tenu': 'tenir', 'tenue': 'tenir', 'tenus': 'tenir', 'tenues': 'tenir',
+  // connaître → connu, connue, connus, connues
+  'connu': 'connaitre', 'connue': 'connaitre', 'connus': 'connaitre', 'connues': 'connaitre',
+  // croire → cru, crue, crus, crues
+  'cru': 'croire_1', 'crue': 'croire_1', 'crus': 'croire_1', 'crues': 'croire_1',
+  // mettre → mis, mise, mises
+  'mis': 'mettre', 'mise': 'mettre', 'mises': 'mettre',
+  // devoir (conjugaisons absentes du dataset)
+  'dois': 'devoir_falloir_2', 'doit': 'devoir_falloir_2',
+  'devons': 'devoir_falloir_2', 'devez': 'devoir_falloir_2', 'doivent': 'devoir_falloir_2',
+  'devais': 'devoir_falloir_2', 'devait': 'devoir_falloir_2',
+  'devaient': 'devoir_falloir_2', 'devions': 'devoir_falloir_2', 'deviez': 'devoir_falloir_2',
+  // promener / se promener (me/se skippé → verbe seul sans préfixe réfléchi)
+  'promene': 'sebalader', 'promenes': 'sebalader', 'promenons': 'sebalader',
+  'promenez': 'sebalader', 'promenent': 'sebalader',
+  'promenais': 'sebalader', 'promenait': 'sebalader',
+  'promenaient': 'sebalader', 'promenions': 'sebalader',
+  // formidable et synonymes d'enthousiasme → fantastique
+  'formidable': 'fantastique',   'formidables': 'fantastique',
+  'genial': 'fantastique',       'geniale': 'fantastique',     'geniaux': 'fantastique',
+  'merveilleux': 'magnifique',   'merveilleuse': 'magnifique', 'merveilles': 'magnifique',
+  'exceptionnel': 'incroyable',  'exceptionnelle': 'incroyable', 'exceptionnels': 'incroyable',
+  'sensationnel': 'fantastique', 'sensationnelle': 'fantastique',
+  'fabuleux': 'fantastique',     'fabuleuse': 'fantastique',
+  'epoustouflant': 'incroyable', 'epoustouflante': 'incroyable',
+  'extraordinaire': 'incroyable','extraordinaires': 'incroyable',
+  'impressionnant': 'incroyable','impressionnante': 'incroyable',
+  'remarquable': 'incroyable',   'remarquables': 'incroyable',
+  'spectaculaire': 'incroyable', 'spectaculaires': 'incroyable',
+  'grandiose': 'magnifique',     'grandioses': 'magnifique',
+  'splendide': 'magnifique',     'splendides': 'magnifique',
+  'sublime': 'magnifique',       'sublimes': 'magnifique',
+  'prodigieux': 'incroyable',    'prodigieuse': 'incroyable',
+  'epatant': 'super',            'epatante': 'super',
+  'superbe': 'magnifique',       'superbes': 'magnifique',
+  'excellent': 'parfait',        'excellente': 'parfait',      'excellents': 'parfait',
+  // fichiers / formats numériques → document_dossier
+  'document': 'document_dossier', 'documents': 'document_dossier',
+  'fichier': 'document_dossier',  'fichiers': 'document_dossier',
+  'pdf': 'document_dossier',
+  'word': 'document_dossier',
+  'excel': 'document_dossier',
+  'powerpoint': 'document_dossier',
+  'ppt': 'document_dossier',
+  'docx': 'document_dossier',
+  'xlsx': 'document_dossier',
+  'dossier': 'document_dossier', 'dossiers': 'document_dossier',
+  'formulaire': 'document_dossier', 'formulaires': 'document_dossier',
+  'rapport': 'document_dossier',  'rapports': 'document_dossier',
+  // suspecter → hésiter/douter (signe le plus proche, absent du dataset)
+  'suspecte': 'hesiter_2', 'suspectes': 'hesiter_2', 'suspecter': 'hesiter_2',
+  'suspectons': 'hesiter_2', 'suspectez': 'hesiter_2', 'suspectent': 'hesiter_2',
+  'suspectais': 'hesiter_2', 'suspectait': 'hesiter_2',
+  // appeler / s'appeler (le lemmatiseur produit "appeller" double-l → faux)
+  'appelle': 'appeler_insistance_sur_le_passif',
+  'appelles': 'appeler_insistance_sur_le_passif',
+  'appellent': 'appeler_insistance_sur_le_passif',
+  'appelons': 'appeler_insistance_sur_le_passif',
+  'appelez': 'appeler_insistance_sur_le_passif',
+  'appelais': 'appeler_insistance_sur_le_passif',
+  'appelait': 'appeler_insistance_sur_le_passif',
+  'appelaient': 'appeler_insistance_sur_le_passif',
+  'appele': 'appeler_insistance_sur_le_passif',
+  'appeles': 'appeler_insistance_sur_le_passif',
+}
+
+// ─── ASL : formes irrégulières et vocabulaire non couvert par EN_REVERSE ─────
+const EN_IRREGULAR_MAP: Record<string, string> = {
+  // Passé / participes passés irréguliers absents de EN_REVERSE
+  'went':      'aller_3',
+  'gone':      'aller_3',
+  'came':      'venir',
+  'known':     'savoir',
+  'thought':   'penser',
+  'bought':    'acheter',
+  'ate':       'manger',
+  'eaten':     'manger',
+  'drank':     'boire',
+  'drunk':     'boire',
+  'ran':       'courir',
+  'said':      'dire',
+  'told':      'dire',
+  'made':      'faire_3',
+  'gave':      'donner',
+  'given':     'donner',
+  'won':       'gagner_reussir_vaincre_1',
+  'wrote':     'ecrire',
+  'written':   'ecrire',
+  'spoke':     'parler_2',
+  'spoken':    'parler_2',
+  'slept':     'dormir',
+  'fell':      'tomber',
+  'fallen':    'tomber',
+  'seen':      'voir',
+  'done':      'faire_3',
+  'got':       'avoir_2',
+  'taken':     'prendre',
+  'took':      'prendre',
+  'found':     'trouver',
+  'heard':     'entendre',
+  'kept':      'garder',
+  'met':       'rencontrer_1',
+  'felt':      'sentir',
+  'brought':   'apporter',
+  'caught':    'attraper',
+  'chose':     'choisir',
+  'chosen':    'choisir',
+  'drove':     'conduire',
+  'driven':    'conduire',
+  'flew':      'voler_1',
+  'flown':     'voler_1',
+  'forgot':    'oublier',
+  'forgotten': 'oublier',
+  'grew':      'grandir',
+  'grown':     'grandir',
+  'held':      'tenir',
+  'led':       'diriger',
+  'paid':      'payer',
+  'rose':      'monter_1',
+  'risen':     'monter_1',
+  'sat':       'asseoir',
+  'sent':      'envoyer',
+  'sang':      'chanter',
+  'sung':      'chanter',
+  'stood':     'debout',
+  'stole':     'voler_2',
+  'stolen':    'voler_2',
+  'swam':      'nager',
+  'swum':      'nager',
+  'taught':    'enseigner',
+  'threw':     'lancer',
+  'thrown':    'lancer',
+  'understood':'comprendre',
+  'wore':      'porter',
+  'worn':      'porter',
+  'woke':      'reveiller',
+  'woken':     'reveiller',
+  // Marqueurs temporels absents de EN_REVERSE
+  'tomorrow':  'demain',
+  'early':     'tot',
+  'tonight':   'ce_soir',
+  // Mots interrogatifs absents de EN_REVERSE
+  'where':     'ou_1',
+  'which':     'lequel_2',
+  // Vocabulaire courant absent de EN_REVERSE
+  'awesome':   'super',
+  'wonderful': 'fantastique',
+  'tired':     'fatigue_1',
+  'hungry':    'faim_1',
+  'thirsty':   'soif',
+  'angry':     'en_colere',
+  'scared':    'peur_1',
+  'surprised': 'surpris',
+  'bored':     'ennui_1',
+  'document':  'document_dossier', 'documents':  'document_dossier',
+  'file':      'document_dossier', 'files':       'document_dossier',
+  'folder':    'document_dossier', 'folders':     'document_dossier',
+  // Quantificateurs absents de EN_REVERSE
+  'all':       'tout',
+  'every':     'tout',
+  'each':      'tout',
+  'many':      'beaucoup_2',
+  'few':       'peu',
+  'some':      'plusieurs',
+  'any':       'plusieurs',
+  'another':   'autre',
+  'whose':     'lequel_2',
+  // Cause informelle
+  'cause':     'parce_que',
+  'cuz':       'parce_que',
+}
+
+// ─── TİD : formes conjuguées et vocabulaire non couvert par TR_REVERSE ────────
+const TR_IRREGULAR_MAP: Record<string, string> = {
+  // gitmek (aller)
+  'gitti':      'aller_3', 'gittim':     'aller_3', 'gittin':  'aller_3',
+  'gittik':     'aller_3', 'gittiler':   'aller_3',
+  'gidiyor':    'aller_3', 'gidiyorum':  'aller_3', 'gidiyorsun': 'aller_3',
+  'gidiyoruz':  'aller_3', 'gidiyorlar': 'aller_3',
+  'gidecek':    'aller_3', 'gider':      'aller_3',
+  // gelmek (venir)
+  'geldi':      'venir',   'geldim':     'venir',   'geldin':  'venir',
+  'geldik':     'venir',   'geldiler':   'venir',
+  'geliyor':    'venir',   'geliyorum':  'venir',   'gelecek': 'venir',
+  // görmek (voir)
+  'gordu':      'voir',    'gordum':     'voir',    'gordun':  'voir',
+  'gorduk':     'voir',    'gordular':   'voir',
+  'goruyor':    'voir',    'goruyorum':  'voir',    'gorecek': 'voir',
+  // bilmek (savoir)
+  'bildi':      'savoir',  'bildim':     'savoir',  'bildin':  'savoir',
+  'bildik':     'savoir',  'bildiler':   'savoir',
+  'biliyor':    'savoir',  'biliyorum':  'savoir',  'bilecek': 'savoir',
+  // yapmak (faire)
+  'yapti':      'faire_3', 'yaptim':     'faire_3', 'yaptin':  'faire_3',
+  'yaptik':     'faire_3', 'yaptilar':   'faire_3',
+  'yapiyor':    'faire_3', 'yapiyorum':  'faire_3', 'yapacak': 'faire_3',
+  // yemek (manger)
+  'yedi':       'manger',  'yedim':      'manger',  'yedin':   'manger',
+  'yedik':      'manger',  'yediler':    'manger',
+  'yiyor':      'manger',  'yiyorum':    'manger',  'yiyecek': 'manger',
+  // içmek (boire)
+  'icti':       'boire',   'ictim':      'boire',   'ictin':   'boire',
+  'ictik':      'boire',   'ictiler':    'boire',
+  'iciyor':     'boire',   'iciyorum':   'boire',   'icecek':  'boire',
+  // almak (prendre/acheter)
+  'aldi':       'acheter', 'aldim':      'acheter', 'aldin':   'acheter',
+  'aldik':      'acheter', 'aldilar':    'acheter',
+  'aliyor':     'acheter', 'aliyorum':   'acheter', 'alacak':  'acheter',
+  // söylemek (dire)
+  'soyledi':    'dire',    'soyledim':   'dire',    'soyler':  'dire',
+  'soyluyor':   'dire',    'soyluyorum': 'dire',
+  // anlamak (comprendre)
+  'anladi':     'comprendre', 'anladim':  'comprendre', 'anliyor': 'comprendre',
+  'anliyorum':  'comprendre', 'anlayacak':'comprendre',
+  // koşmak (courir)
+  'kostu':      'courir',  'kostum':     'courir',  'kosturun':'courir',
+  'kosuyor':    'courir',  'kosuyorum':  'courir',
+  // uyumak (dormir)
+  'uyudu':      'dormir',  'uyudum':     'dormir',
+  'uyuyor':     'dormir',  'uyuyorum':   'dormir',
+  // sevmek (aimer)
+  'sevdi':      'aimer_1', 'sevdim':     'aimer_1', 'sevdin':  'aimer_1',
+  'seviyor':    'aimer_1', 'seviyorum':  'aimer_1',
+  // Marqueurs temporels absents de TR_REVERSE
+  'dun':        'hier',        // dün = hier
+  'yarin':      'demain',      // yarın = demain
+  'simdi':      'maintenant',  // şimdi = maintenant
+  'bugun':      'aujourdhui',  // bugün = aujourd'hui
+  'aksam':      'soir_1',      // akşam = soir
+  'oglen':      'midi',        // öğlen = midi
+  'erken':      'tot',         // erken = tôt
+  'gec':        'tard',        // geç = tard
+  'once':       'avant',       // önce = avant/d'abord
+  'sali':       'mardi',       // salı = mardi
+  'carsamba':   'mercredi_2',  // çarşamba = mercredi
+  'persembe':   'jeudi_2',     // perşembe = jeudi
+  // Mots interrogatifs absents de TR_REVERSE
+  'nasil':      'comment_1',  // nasıl = comment
+  'kac':        'combien',    // kaç = combien
+  'hangi':      'lequel_2',   // hangi = lequel/quel
+  'nerede':     'ou_1',       // nerede = où
+  'nereye':     'ou_1',       // nereye = vers où
+  // Vocabulaire courant absent de TR_REVERSE
+  'harika':     'fantastique', 'muhtesem': 'fantastique',
+  'guzel':      'magnifique',
+  'mutlu':      'bonheur_heureux', 'mutluyum': 'bonheur_heureux',
+  'uzgun':      'triste_2',
+  'kotu':       'affreux',
+  'yorgun':     'fatigue_1',
+  'hasta':      'malade_1',
+  'korkmus':    'peur_1',
+  'acikmisin':  'faim_1',   'acim':  'faim_1',
+  'susadim':    'soif',
+  'belge':      'document_dossier', 'belgeler': 'document_dossier',
+  'dosya':      'document_dossier', 'dosyalar': 'document_dossier',
+  'rapor':      'document_dossier', 'raporlar': 'document_dossier',
+  // Couleurs absentes de TR_REVERSE
+  'kirmizi':    'rouge',     // kırmızı
+  'yesil':      'vert',      // yeşil
+  'sari':       'jaune',     // sarı
+  // Taille / dimensions
+  'buyuk':      'large',     // büyük = grand/gros
+  'kucuk':      'petit',     // küçük
+  'kisa':       'court',     // kısa = court/petit
+  // Qualités physiques
+  'soguk':      'froid',     // soğuk
+  'sicak':      'chaud',     // sıcak
+  'pahali':     'cher',      // pahalı = cher/coûteux
+  'hizli':      'vite',      // hızlı = rapide
+  'yavas':      'lent',      // yavaş
+  // Famille
+  'kardes':     'frere',     // kardeş = frère/sœur
+  // Salutations
+  'gunaydin':   'bonjour',   // günaydın = bonjour (matin)
+  'gece':       'nuit_1',    // gece iyi geceler → nuit
+}
+
+// ─── Marqueurs temporels → placés en TÊTE de phrase en LSF ──────────────────
+// "Hier j'ai mangé" → LSF : HIER MOI MANGER
+const LSF_TIME_MARKERS = new Set([
+  'hier','demain','maintenant','bientot','toujours','parfois',
+  'souvent','deja','encore','tot','tard','autrefois','recemment','desormais',
+  'prochainement','lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche',
+  'matin','soir','midi','minuit','aujourdhui',
+])
+
+// ─── Mots interrogatifs → placés en FIN de phrase en LSF ────────────────────
+// "Qu'est-ce qu'elle fait ?" → LSF : ELLE FAIRE QUOI ?
+const LSF_QUESTION_MARKERS = new Set([
+  'comment','pourquoi','quand','quoi','combien',
+  'quel','quelle','quels','quelles',
+])
+
+// ─── ASL : time markers → HEAD of sentence ───────────────────────────────────
+const ASL_TIME_MARKERS = new Set([
+  'yesterday','tomorrow','today','now','soon','always','never',
+  'sometimes','often','already','still','early','late','recently',
+  'monday','tuesday','wednesday','thursday','friday','saturday','sunday',
+  'morning','evening','noon','midnight','tonight','before','after','later','ago',
+])
+
+// ─── ASL : question markers → TAIL of sentence ───────────────────────────────
+const ASL_QUESTION_MARKERS = new Set([
+  'what','why','when','where','how','who','which',
+])
+
+// ─── TİD : zaman belirteçleri → cümle BAŞINA ─────────────────────────────────
+const TID_TIME_MARKERS = new Set([
+  'dun','yarin','simdi','bugun','sabah','aksam','oglen','gece',
+  'pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar',
+  'erken','gec','once','sonra','bazen','her','zaten','hala',
+  'gecen','yakinda','sonunda','artik',
+])
+
+// ─── TİD : soru kelimeleri → cümle SONUNA ────────────────────────────────────
+const TID_QUESTION_MARKERS = new Set([
+  'ne','neden','nasil','kim','kac','hangi','nerede','nereye','nereden',
+])
+
+// ─── Négation → queue (avant le mot interrogatif) ────────────────────────────
+// LSF : "Je ne mange PAS" → MOI MANGER PAS (règle 04)
+// TİD : "Ben et yemiyorum DEĞİL" → BEN ET YEMEK DEĞİL (règle 03)
+const LSF_NEG_TAIL  = new Set(['pas', 'jamais', 'plus', 'rien'])
+const TID_NEG_TAIL  = new Set(['degil'])
+
+// ─── Réordonnancement générique (LSF / ASL / TİD) ────────────────────────────
+// TEMPS … CORPS … NÉGATION … MOT_INTERROGATIF
+function reorderTokens(tokens: string[], language: string): string[] {
+  const timeSet  = language === 'en' ? ASL_TIME_MARKERS
+                 : language === 'tr' ? TID_TIME_MARKERS
+                 : LSF_TIME_MARKERS
+  const qSet     = language === 'en' ? ASL_QUESTION_MARKERS
+                 : language === 'tr' ? TID_QUESTION_MARKERS
+                 : LSF_QUESTION_MARKERS
+  const negSet   = language === 'tr' ? TID_NEG_TAIL
+                 : language === 'fr' ? LSF_NEG_TAIL
+                 : null
+
+  const timeHead: string[] = []
+  const negTail:  string[] = []
+  const questionTail: string[] = []
+  const body: string[] = []
+
+  for (const tok of tokens) {
+    const norm = removeAccents(tok.toLowerCase())
+    if (timeSet.has(norm))              timeHead.push(tok)
+    else if (negSet?.has(norm))         negTail.push(tok)
+    else if (qSet.has(norm))            questionTail.push(tok)
+    else                                body.push(tok)
+  }
+
+  return [...timeHead, ...body, ...negTail, ...questionTail]
+}
+
+/**
+ * Lemmatiseur morphologique turc.
+ * Couvre les suffixes verbaux (temps + personne) ET les suffixes nominaux (cas + possessif
+ * + pluriel + particule interrogative). Le turc étant agglutinant, un même mot peut porter
+ * plusieurs suffixes empilés : dondurma-dan, araba-ya, kitap-lar-dan, etc.
+ * Après décapage, essaie aussi les variantes par alternance consonantique (d→t, c→ç, g→k)
+ * et récupère les voyelles finales tombées (oyna→oynu après -uyor, araba→arab après -da).
+ */
+function turkishLemmatize(word: string): string[] {
+  const candidates = new Set<string>()
+  const MIN_STEM = 2
+
+  // Suffixes ordonnés du plus long au plus court.
+  // Harmonique vocalique : les 4 variantes a/e/ı/i/u/ü sont toutes listées.
+  const suffixes = [
+    // Infinitif
+    'mak','mek',
+
+    // ── Suffixes VERBAUX ───────────────────────────────────────────────────
+    // Présent progressif + personne
+    'iyorsunuz','ıyorsunuz','uyorsunuz','üyorsunuz',
+    'iyorlar','ıyorlar','uyorlar','üyorlar',
+    'iyorsun','ıyorsun','uyorsun','üyorsun',
+    'iyoruz','ıyoruz','uyoruz','üyoruz',
+    'iyorum','ıyorum','uyorum','üyorum',
+    'iyor','ıyor','uyor','üyor',
+    // Passé défini + personne
+    'dınız','diniz','dunuz','dünüz','tınız','tiniz','tunuz','tünüz',
+    'dılar','diler','dular','düler','tılar','tiler','tular','tüler',
+    'dık','dik','duk','dük','tık','tik','tuk','tük',
+    'dım','dim','dum','düm','tım','tim','tum','tüm',
+    'dın','din','dun','dün','tın','tin','tun','tün',
+    'dı','di','du','dü','tı','ti','tu','tü',
+    // Futur + personne
+    'acağım','eceğim','acağız','eceğiz',
+    'acaksınız','eceksiniz',
+    'acaksın','eceksin',
+    'acaklar','ecekler',
+    'acak','ecek',
+    // Aoriste + personne
+    'arsınız','ersiniz','ırsınız','irsiniz','ursunuz','ürsünüz',
+    'arlarız','erleriz',
+    'arlar','erler','ırlar','irler','urlar','ürler',
+    'arım','erim','ırım','irim','urum','ürüm',
+    'arsın','ersin','ırsın','irsin','ursun','ürsün',
+    'arız','eriz','ırız','iriz','uruz','ürüz',
+    // Gérondif / nom verbal
+    'arak','erek',
+
+    // ── Suffixes NOMINAUX (pluriel + cas + possessif + interrogatif) ────────
+    // Pluriel + cas combinés (les plus longs d'abord)
+    'larımızdan','lerimizden','larımızda','lerimizde','larımıza','lerimize',
+    'larımızı','lerimizi','larımız','lerimiz',
+    'larınızdan','lerinizden','larınızda','lerinizde','larınıza','lerinize',
+    'larınızı','lerinizi','larınız','leriniz',
+    'larından','lerinden','larında','lerinde',
+    'larına','lerine','larını','lerini','larının','lerinin',
+    'lardan','lerden','larda','lerde',
+    'lara','lere','ları','leri','ların','lerin',
+    'lar','ler',          // pluriel seul
+    // Possessif + cas
+    'ımızdan','imizden','umuzdan','ümüzden',
+    'ımızda','imizde','umuzda','ümüzde',
+    'ımıza','imize','umuza','ümüze',
+    'ımızı','imizi','umuzu','ümüzü',
+    'ımız','imiz','umuz','ümüz',
+    'ınızdan','inizden','unuzdan','ünüzden',
+    'ınızda','inizde','unuzda','ünüzde',
+    'ınıza','inize','unuza','ünüze',
+    'ınızı','inizi','unuzu','ünüzü',
+    'ınız','iniz','unuz','ünüz',
+    'ımdan','imden','umdan','ümden',
+    'ından','inden','undan','ünden',
+    'ımda','imde','umda','ümde',
+    'ında','inde','unda','ünde',
+    'ıma','ime','uma','üme',
+    'ına','ine','una','üne',
+    'ımı','imi','umu','ümü',
+    'ını','ini','unu','ünü',
+    // Cas simples (ablatif, locatif, datif, accusatif, génitif)
+    'ndan','nden','nda','nde',  // après voyelle finale
+    'nın','nin','nun','nün',    // génitif après voyelle
+    'dan','den','tan','ten',    // ablatif
+    'da','de','ta','te',       // locatif
+    'ya','ye',                 // datif après voyelle
+    'yla','yle',               // instrumental/comitatif après voyelle (arabayla, evle)
+    'yı','yi','yu','yü',       // accusatif après voyelle
+    'nı','ni','nu','nü',       // accusatif avec buffer
+    'ın','in','un','ün',       // génitif / 2p possessif
+    'la','le',                 // instrumental/comitatif après consonne (öğretmenle)
+    // Particule interrogative (attachée)
+    'mı','mi','mu','mü',
+    // Possessif court après voyelle (ex: ülke+n, araba+m, araba+sı)
+    'nızdan','nizden','nuzdan','nüzden',
+    'nızda','nizde','nuzda','nüzde',
+    'nıza','nize','nuza','nüze',
+    'nızı','nizi','nuzu','nüzü',
+    'nız','niz','nuz','nüz',     // 2pl possessif après voyelle
+    'mızdan','mizden','muzdan','müzden',
+    'mızda','mizde','muzda','müzde',
+    'mıza','mize','muza','müze',
+    'mızı','mizi','muzu','müzü',
+    'mız','miz','muz','müz',     // 1pl possessif après voyelle
+    'sından','sinden','sundan','sünden',
+    'sında','sinde','sunda','sünde',
+    'sına','sine','suna','süne',
+    'sını','sini','sunu','sünü',
+    'sın','sin','sun','sün',     // possessif 3sg + désinence
+    'sı','si','su','sü',        // 3sg possessif après voyelle
+    'ndan','nden','nda','nde',  // possessif 2sg + cas
+    'na','ne',                  // datif après possessif (ülke-n-e)
+    'nı','ni','nu','nü',        // accusatif après possessif
+    'nın','nin','nun','nün',    // génitif après voyelle
+    'dan','den','tan','ten',    // ablatif
+    'da','de','ta','te',       // locatif
+    'ya','ye',                 // datif après voyelle
+    'yı','yi','yu','yü',       // accusatif après voyelle
+    'ın','in','un','ün',       // génitif / possessif 2sg après consonne
+    // Aoriste court
+    'ar','er','ır','ir','ur','ür',
+    'ma','me',                 // gérondif / nominalisateur
+    // Possessifs/suffixes d'un seul caractère (en tout dernier)
+    'n',                       // 2sg possessif après voyelle : ülke→ülken
+    'm',                       // 1sg possessif après voyelle : araba→arabam
+    'ı','i','u','ü',           // accusatif après consonne
+    'a','e',                   // datif après consonne : öğretmen→e, okul→a
+  ]
+
+  for (const suf of suffixes) {
+    if (word.endsWith(suf) && word.length - suf.length >= MIN_STEM) {
+      const stem = word.slice(0, -suf.length)
+      candidates.add(stem)
+      // Alternance consonantique : réversion de l'adoucissement (d→t, c→ç, g→k)
+      if (stem.endsWith('d')) candidates.add(stem.slice(0, -1) + 't')
+      if (stem.endsWith('c')) candidates.add(stem.slice(0, -1) + 'ç')
+      if (stem.endsWith('g')) candidates.add(stem.slice(0, -1) + 'k')
+      // Récupération de voyelle finale tombée avant -iyor (oyna→oynu → essayer oyna, oyne…)
+      for (const v of ['a','e','ı','i','u','ü']) {
+        candidates.add(stem + v)
+      }
+    }
+  }
+
+  return [...candidates].filter(c => c !== word && c.length >= MIN_STEM)
+}
+
+function englishLemmatize(word: string): string[] {
+  const candidates = new Set<string>()
+  const VOWELS = /[aeiou]/
+  const CONS   = /[bcdfghjklmnpqrstvwxz]/
+
+  function tryAdd(s: string) {
+    if (s.length >= 2 && s !== word) candidates.add(s)
+  }
+
+  // ─── -ing (present participle / gerund) ──────────────────────────────────
+  if (word.endsWith('ing') && word.length > 5) {
+    const base = word.slice(0, -3)
+
+    // lying→lie, tying→tie, dying→die  (ie+ying formation)
+    if (word.endsWith('ying')) tryAdd(base.slice(0, -1) + 'ie')
+
+    // CVC doubling: sitting→sit, running→run, getting→get, swimming→swim
+    if (base.length >= 3 && base.at(-1) === base.at(-2) && CONS.test(base.at(-1)!))
+      tryAdd(base.slice(0, -1))
+
+    // silent-e: making→make, writing→write, having→have, coming→come
+    tryAdd(base + 'e')
+
+    // simple: going→go, eating→eat, walking→walk, singing→sing
+    tryAdd(base)
+  }
+
+  // ─── -ed (past tense / past participle) ──────────────────────────────────
+  if (word.endsWith('ed') && word.length > 4) {
+    const base = word.slice(0, -2)
+
+    // tried→try, carried→carry
+    if (word.endsWith('ied') && word.length > 4) tryAdd(word.slice(0, -3) + 'y')
+
+    // CVC doubling: stopped→stop, grabbed→grab, planned→plan
+    if (base.length >= 3 && base.at(-1) === base.at(-2) && CONS.test(base.at(-1)!))
+      tryAdd(base.slice(0, -1))
+
+    // silent-e already in stem: smiled→smile, loved→love, lived→live
+    tryAdd(word.slice(0, -1))
+
+    // simple: walked→walk, helped→help
+    tryAdd(base)
+  }
+
+  // ─── -s / -es / -ies (3rd person singular / plurals) ─────────────────────
+  if (word.endsWith('ies') && word.length > 4)
+    tryAdd(word.slice(0, -3) + 'y')            // tries→try, flies→fly, carries→carry
+
+  if (word.endsWith('es') && word.length > 4) {
+    tryAdd(word.slice(0, -2))                   // watches→watch, fixes→fix, goes→go
+    tryAdd(word.slice(0, -1))                   // makes→make, loves→love
+  }
+
+  if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3)
+    tryAdd(word.slice(0, -1))                   // runs→run, sits→sit, books→book
+
+  // ─── -er / -est (comparative / superlative → base adjective) ────────────
+  if (word.endsWith('er') && word.length > 5) {
+    const base = word.slice(0, -2)
+    if (base.length >= 2 && base.at(-1) === base.at(-2) && CONS.test(base.at(-1)!))
+      tryAdd(base.slice(0, -1))                 // bigger→big, hotter→hot
+    tryAdd(base + 'e')                          // nicer→nice, larger→large
+    tryAdd(base)                                // faster→fast, taller→tall
+  }
+  if (word.endsWith('est') && word.length > 6) {
+    const base = word.slice(0, -3)
+    tryAdd(base + 'e')                          // nicest→nice, latest→late
+    tryAdd(base)                                // fastest→fast, tallest→tall
+  }
+
+  // ─── -ly (adverb → adjective) ────────────────────────────────────────────
+  if (word.endsWith('ily') && word.length > 5)  tryAdd(word.slice(0, -3) + 'y')  // happily→happy
+  else if (word.endsWith('ly') && word.length > 4) tryAdd(word.slice(0, -2))      // quickly→quick
+
+  return [...candidates]
+}
+
+export function lookupWord(word: string, language: string): string | null {
+  const norm = removeAccents(word.toLowerCase().trim())
+  if (!norm || norm === 'rsquo') return null
+
+  // Étape 1 : remappages de faux amis (avant le lookup direct)
+  if (language === 'fr' && FR_REMAP[norm]) return FR_REMAP[norm]
+  if (language === 'en' && EN_REMAP[norm])  return EN_REMAP[norm]
+  if (language === 'tr' && TR_REMAP[norm])  return TR_REMAP[norm]
+
+  // Étape 2 : mots grammaticaux à ignorer
+  if (language === 'fr' && FR_CONTEXTUAL_SKIP.has(norm)) return null
+  if (language === 'en' && EN_CONTEXTUAL_SKIP.has(norm)) return null
+  if (language === 'tr' && TR_CONTEXTUAL_SKIP.has(norm)) return null
+
+  // Étape 3 : lookup direct dans le dataset
+  let direct: string | null = null
   if (language === 'en') {
-    return EN_REVERSE[norm] ?? EN_DYNAMIC.get(norm) ?? null
+    direct = EN_REVERSE[norm] ?? EN_DYNAMIC.get(norm) ?? null
+  } else if (language === 'tr') {
+    direct = TR_REVERSE[norm] ?? TR_DYNAMIC.get(norm) ?? null
+  } else {
+    direct = FR_REVERSE[norm] ?? null
+  }
+  if (direct) return direct
+
+  // Étape 4 : formes irrégulières / conjugaisons absentes du dataset
+  if (language === 'fr') { const irr = FR_IRREGULAR_MAP[norm]; if (irr) return irr }
+  if (language === 'en') { const irr = EN_IRREGULAR_MAP[norm]; if (irr) return irr }
+  if (language === 'tr') { const irr = TR_IRREGULAR_MAP[norm]; if (irr) return irr }
+
+  // Étape 5 : pronoms/déterminants isolés
+  if (language === 'fr') { const pro = FR_PRONOUN_MAP[norm]; if (pro) return pro }
+  if (language === 'en') { const pro = EN_PRONOUN_MAP[norm]; if (pro) return pro }
+  if (language === 'tr') { const pro = TR_PRONOUN_MAP[norm]; if (pro) return pro }
+
+  // Étape 6 (FR uniquement) : synonymes dans les clés composées
+  if (language === 'fr') {
+    const syn = FR_SYNONYM_MAP.get(norm)
+    if (syn) return syn
+  }
+
+  // Étape 7 : lemmatisation morphologique
+  if (language === 'fr') {
+    for (const lemma of frenchLemmatize(norm)) {
+      const r = FR_REVERSE[lemma] ?? FR_SYNONYM_MAP.get(lemma) ?? null
+      if (r) return r
+    }
+  }
+  if (language === 'en') {
+    for (const stem of englishLemmatize(norm)) {
+      const r = EN_REVERSE[stem] ?? EN_DYNAMIC.get(stem) ?? EN_IRREGULAR_MAP[stem] ?? null
+      if (r) return r
+    }
   }
   if (language === 'tr') {
-    return TR_REVERSE[norm] ?? TR_DYNAMIC.get(norm) ?? null
+    for (const stem of turkishLemmatize(norm)) {
+      const r = TR_REVERSE[stem] ?? TR_DYNAMIC.get(stem) ?? TR_IRREGULAR_MAP[stem] ?? null
+      if (r) return r
+    }
   }
-  // FR par défaut
-  return FR_REVERSE[norm] ?? null
+
+  return null
+}
+
+/**
+ * Développe les élisions et contractions françaises.
+ * j'aime → je aime, t'aimeras → tu aimeras, m'emmène → me emmène, etc.
+ */
+function expandFrenchElisions(text: string): string {
+  return text
+    .replace(/['']/g, "'")
+    // Mots composés avec apostrophe à protéger EN PREMIER
+    .replace(/\baujourd'hui\b/gi, 'aujourd_hui')
+    .replace(/\bapr[eè]s[- ]midi\b/gi, 'apresmidi')
+    .replace(/\bpresqu'ile\b/gi,  'presquile')
+    // Conjonctions longues
+    .replace(/\bquoiqu'/gi, 'quoique ')
+    .replace(/\bjusqu'/gi,  'jusque ')
+    .replace(/\blorsqu'/gi, 'lorsque ')
+    .replace(/\bpuisqu'/gi, 'puisque ')
+    // Élisions courantes
+    .replace(/\bqu'/gi, 'que ')
+    .replace(/\bj'/gi,  'je ')
+    .replace(/\bt'/gi,  'te ')
+    .replace(/\bm'/gi,  'me ')
+    .replace(/\bs'/gi,  'se ')
+    .replace(/\bc'/gi,  'ce ')
+    .replace(/\bn'/gi,  'ne ')
+    .replace(/\bl'/gi,  'le ')
+    .replace(/\bd'/gi,  'de ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * Développe les contractions anglaises courantes.
+ * won't → will not, can't → cannot, I'm → I am, they've → they have, etc.
+ */
+function expandEnglishContractions(text: string): string {
+  return text
+    .replace(/['']/g, "'")
+    // Négations contractées (longest first)
+    .replace(/\bwon't\b/gi, 'will not')
+    .replace(/\bcan't\b/gi, 'cannot')
+    .replace(/\bshan't\b/gi, 'shall not')
+    .replace(/\bwouldn't\b/gi, 'would not')
+    .replace(/\bcouldn't\b/gi, 'could not')
+    .replace(/\bshouldn't\b/gi, 'should not')
+    .replace(/\bdidn't\b/gi, 'did not')
+    .replace(/\bdoesn't\b/gi, 'does not')
+    .replace(/\bdon't\b/gi, 'do not')
+    .replace(/\bhaven't\b/gi, 'have not')
+    .replace(/\bhasn't\b/gi, 'has not')
+    .replace(/\bhadn't\b/gi, 'had not')
+    .replace(/\bwasn't\b/gi, 'was not')
+    .replace(/\bweren't\b/gi, 'were not')
+    .replace(/\bisn't\b/gi, 'is not')
+    .replace(/\baren't\b/gi, 'are not')
+    .replace(/\bn't\b/gi, ' not')
+    // Contractions positives
+    .replace(/\bi'm\b/gi, 'i am')
+    .replace(/\bi've\b/gi, 'i have')
+    .replace(/\bi'll\b/gi, 'i will')
+    .replace(/\bi'd\b/gi, 'i would')
+    .replace(/\byou're\b/gi, 'you are')
+    .replace(/\byou've\b/gi, 'you have')
+    .replace(/\byou'll\b/gi, 'you will')
+    .replace(/\byou'd\b/gi, 'you would')
+    .replace(/\bhe's\b/gi, 'he is')
+    .replace(/\bhe'll\b/gi, 'he will')
+    .replace(/\bhe'd\b/gi, 'he would')
+    .replace(/\bshe's\b/gi, 'she is')
+    .replace(/\bshe'll\b/gi, 'she will')
+    .replace(/\bshe'd\b/gi, 'she would')
+    .replace(/\bwe're\b/gi, 'we are')
+    .replace(/\bwe've\b/gi, 'we have')
+    .replace(/\bwe'll\b/gi, 'we will')
+    .replace(/\bwe'd\b/gi, 'we would')
+    .replace(/\bthey're\b/gi, 'they are')
+    .replace(/\bthey've\b/gi, 'they have')
+    .replace(/\bthey'll\b/gi, 'they will')
+    .replace(/\bthey'd\b/gi, 'they would')
+    .replace(/\bit's\b/gi, 'it is')
+    .replace(/\bthat's\b/gi, 'that is')
+    .replace(/\bthere's\b/gi, 'there is')
+    .replace(/\bwhat's\b/gi, 'what is')
+    .replace(/\bwho's\b/gi, 'who is')
+    .replace(/\bhow's\b/gi, 'how is')
+    // Génitif 's → supprimer (non signé en ASL)
+    .replace(/\b(\w+)'s\b/gi, '$1')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 /**
@@ -35920,65 +37014,118 @@ function lookupWord(word: string, language: string): string | null {
  * - Tirets dans les mots composés (ex: "dix-sept" → lookup "dix sept")
  */
 export function segmentInput(input: string, language: string = 'fr'): string[] {
-  const tokens = input
-    .toLowerCase()
-    .replace(/[.!?,;:%]/g, ' ')
-    .split(/\s+/)
-    .map(t => t.trim())
-    .filter(Boolean)
+  return segmentToSlots(input, language)
+    .filter((s): s is Extract<SegmentSlot, { found: true }> => s.found)
+    .map(s => s.sign)
+}
 
-  const result: string[] = []
+export type SegmentSlot =
+  | { found: true;  sign: string; word: string }
+  | { found: false; token: string }
+
+function slotsFromTokens(tokens: string[], language: string): SegmentSlot[] {
+  const slots: SegmentSlot[] = []
   let i = 0
-
   while (i < tokens.length) {
-    // 1. Groupes de 3 puis 2 mots (ex: "au revoir", "8 mois", "cent vingt")
-    let found = false
-    for (const len of [3, 2]) {
-      if (i + len <= tokens.length) {
-        const phrase = tokens.slice(i, i + len).join(' ')
-        const sid = lookupWord(phrase, language)
-        if (sid) { result.push(sid); i += len; found = true; break }
-      }
-    }
-    if (found) continue
-
     const token = tokens[i]
-
-    // 2. Chiffres arabes → décomposition numérique (ex: "17" → 17_dix_sept_1)
     if (/^\d+$/.test(token)) {
-      const signs = numToSigns(parseInt(token, 10))
-      result.push(...signs)
-      i++
-      continue
+      const numSigns = numToSigns(parseInt(token, 10))
+      for (const s of numSigns) slots.push({ found: true, sign: s, word: token })
+      i++; continue
     }
-
-    // 3. Lookup direct (mot simple ou déjà mappé)
-    const sid = lookupWord(token, language)
-    if (sid) { result.push(sid); i++; continue }
-
-    // 4. Mot avec tiret → essai des sous-parties (ex: "dix-sept" → "dix sept")
+    {
+      let found = false
+      const maxLen = Math.min(tokens.length - i, 8)
+      for (let len = maxLen; len >= 2; len--) {
+        if (i + len <= tokens.length) {
+          const phrase = tokens.slice(i, i + len).join(' ')
+          const sid = lookupWord(phrase, language)
+            ?? (language === 'fr' ? FR_PHRASE_MAP.get(phrase) ?? null : null)
+          if (sid) { slots.push({ found: true, sign: sid, word: phrase }); i += len; found = true; break }
+        }
+      }
+      if (found) continue
+      const sid = lookupWord(token, language)
+      if (sid) { slots.push({ found: true, sign: sid, word: token }); i++; continue }
+    }
     if (token.includes('-')) {
       const parts = token.split('-').filter(Boolean)
-      let p = 0
+      let p = 0; let anyPartFound = false
       while (p < parts.length) {
         let pfound = false
         for (const plen of [3, 2]) {
           if (p + plen <= parts.length) {
             const phrase = parts.slice(p, p + plen).join(' ')
             const psid = lookupWord(phrase, language)
-            if (psid) { result.push(psid); p += plen; pfound = true; break }
+            if (psid) { slots.push({ found: true, sign: psid, word: phrase }); p += plen; pfound = true; anyPartFound = true; break }
           }
         }
         if (!pfound) {
           const psid = lookupWord(parts[p], language)
-          if (psid) result.push(psid)
+          if (psid) { slots.push({ found: true, sign: psid, word: parts[p] }); anyPartFound = true }
           p++
         }
       }
+      if (!anyPartFound) slots.push({ found: false, token })
+    } else {
+      slots.push({ found: false, token })
     }
-
     i++
   }
 
+  // Si deux slots consécutifs trouvés ont le même signe, jouer le signe deux fois
+  const result: SegmentSlot[] = []
+  for (let j = 0; j < slots.length; j++) {
+    result.push(slots[j])
+    const cur = slots[j]
+    const nxt = slots[j + 1]
+    if (cur.found && nxt?.found && cur.sign === nxt.sign) {
+      result.push({ found: true, sign: cur.sign, word: nxt.word })
+      j++
+    }
+  }
   return result
+}
+
+const CURRENCY_RE = [
+  [/€/g, ' euro '], [/\$/g, ' dollar '], [/£/g, ' livre '],
+  [/¥/g, ' yen '],  [/₺/g, ' lira '],
+] as const
+
+function tokenize(text: string): string[] {
+  let s = text.toLowerCase()
+  for (const [re, rep] of CURRENCY_RE) s = s.replace(re, rep as string)
+  return s
+    .replace(/[.!?,;:=%"'`()\[\]{}<>«»\/\\|@#^*~+]/g, ' ')
+    .split(/\s+/).map(t => t.trim()).filter(Boolean)
+}
+
+export function segmentToSlots(input: string, language: string = 'fr'): SegmentSlot[] {
+  let preprocessed = input
+  if (language === 'fr')      preprocessed = expandFrenchElisions(input)
+  else if (language === 'en') preprocessed = expandEnglishContractions(input)
+
+  // Découper en phrases pour réordonner chaque phrase indépendamment.
+  // "Who are you? What's your name?" → chaque phrase a ses propres mots interrogatifs en fin,
+  // sans mélanger les WH-words de toutes les phrases ensemble.
+  const sentences = preprocessed.split(/(?<=[.!?])\s*/).filter(s => s.trim())
+  if (sentences.length === 0) sentences.push(preprocessed)
+
+  const allSlots: SegmentSlot[] = []
+  for (const sentence of sentences) {
+    const rawTokens = tokenize(sentence)
+    const tokens = reorderTokens(rawTokens, language)
+    allSlots.push(...slotsFromTokens(tokens, language))
+  }
+  return allSlots
+}
+
+export function segmentInputWithWords(input: string, language: string = 'fr'): { signs: string[]; words: string[] } {
+  const slots = segmentToSlots(input, language)
+  const signs: string[] = []
+  const words: string[] = []
+  for (const s of slots) {
+    if (s.found) { signs.push(s.sign); words.push(s.word) }
+  }
+  return { signs, words }
 }

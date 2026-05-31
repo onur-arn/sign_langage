@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { t, language, setLanguage } = useLanguage();
   const { dark } = useDarkMode();
@@ -60,7 +61,7 @@ export default function LoginPage() {
           style={{ background: dark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.85)', borderColor: 'rgba(91,164,176,0.25)' }}>
           {languages.map((lang) => (
             <button key={lang.code} onClick={() => setLanguage(lang.code)}
-              className="px-3 py-2 rounded-xl text-sm transition-all"
+              className="px-3 py-2 rounded-xl text-sm transition-all cursor-pointer"
               style={language === lang.code
                 ? { background: '#5ba4b0', color: '#ffffff' }
                 : { color: dark ? 'rgba(255,255,255,0.7)' : '#5ba4b0' }}>
@@ -102,20 +103,38 @@ export default function LoginPage() {
           </div>
           <div>
             <label className="block text-sm font-semibold mb-2" style={{ color: textMain }}>{t.auth.password}</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-5 py-4 border rounded-2xl focus:ring-2 focus:ring-[#5ba4b0] focus:border-[#5ba4b0] transition-all outline-none placeholder:text-slate-400"
-              style={{ background: inputBg, borderColor: inputBorder, color: textMain }}
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full px-5 py-4 pr-14 border rounded-2xl focus:ring-2 focus:ring-[#5ba4b0] focus:border-[#5ba4b0] transition-all outline-none placeholder:text-slate-400"
+                style={{ background: inputBg, borderColor: inputBorder, color: textMain }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
+                style={{ color: dark ? 'rgba(255,255,255,0.5)' : '#4a7a84' }}
+              >
+                {showPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full text-white py-4 rounded-2xl font-semibold hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md mt-2"
+            className="w-full text-white py-4 rounded-2xl font-semibold cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md mt-2"
             style={{ background: '#5ba4b0' }}
           >
             {loading ? `${t.auth.loginButton}...` : t.auth.loginButton}

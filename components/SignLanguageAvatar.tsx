@@ -70,11 +70,50 @@ const SIGN_CORRECTIONS: Record<string, (bones: Record<string, THREE.Bone>) => vo
   infirmier: (bones) => {
     const arm = bones['LeftArm']
     if (!arm) return
-    // Incline le bras gauche vers l'extérieur (~20°) pour éviter qu'il rentre dans le corps
     const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), 0.35)
     arm.quaternion.premultiply(q)
     arm.updateWorldMatrix(true, false)
   },
+  toi_tu: (bones) => {
+    correctArmForward(bones, 'Right')
+  },
+  votre_vous: (bones) => {
+    correctArmForward(bones, 'Right')
+    correctArmForward(bones, 'Left')
+  },
+}
+
+// Ensures the arm isn't clipping through the torso by detecting when the upper arm
+// crosses toward the body center and adding a forward push proportional to the crossing.
+// Runs every frame (including intro SLERP) via SIGN_CORRECTIONS.
+function correctArmForward(bones: Record<string, THREE.Bone>, side: 'Left' | 'Right') {
+  const shoulderBone = bones[`${side}Shoulder`]
+  const armBone = bones[`${side}Arm`]
+  if (!shoulderBone || !armBone) return
+
+  armBone.updateWorldMatrix(true, false)
+
+  const parentQ = new THREE.Quaternion()
+  shoulderBone.getWorldQuaternion(parentQ)
+
+  const armWorldQ = new THREE.Quaternion()
+  armBone.getWorldQuaternion(armWorldQ)
+
+  // Current arm direction in world space (+Y = toward elbow from shoulder)
+  const armDir = new THREE.Vector3(0, 1, 0).applyQuaternion(armWorldQ)
+
+  // Inward = arm crossing toward body center (positive x for right, negative x for left)
+  const inward = Math.max(0, side === 'Right' ? armDir.x : -armDir.x)
+  // Require at minimum 10% forward OR proportional to inward crossing
+  const minZ = Math.max(inward * 0.6, 0.10)
+
+  if (armDir.z >= minZ) return
+
+  // Push arm forward: set z to minZ and re-normalize
+  const correctedDir = new THREE.Vector3(armDir.x, armDir.y, minZ).normalize()
+  // Preserve current elbow-bend axis as rollRef
+  const elbowNormal = new THREE.Vector3(0, 0, 1).applyQuaternion(armWorldQ)
+  orientArmBone(armBone, parentQ, correctedDir, elbowNormal)
 }
 
 function lm(pt: Landmark): THREE.Vector3 {
@@ -105,23 +144,29 @@ function pointBoneAt(
 interface AvatarProps {
   frames: SignFrame[]
   isPlaying: boolean
+  paused?: boolean
   fps?: number
   onDone?: () => void
+  onLoad?: () => void
   idleFrame?: SignFrame | null
   transitionFrame?: SignFrame | null
   activeSign?: string | null
+  modelPath?: string
 }
 
 export default function SignLanguageAvatar({
   frames,
   isPlaying,
+  paused = false,
   fps = 25,
   onDone,
+  onLoad,
   idleFrame,
   transitionFrame,
   activeSign,
+  modelPath = '/avatar.glb',
 }: AvatarProps) {
-  const { scene } = useGLTF('/avatar.glb')
+  const { scene } = useGLTF(modelPath)
   const bones = useRef<Record<string, THREE.Bone>>({})
   const restQuats = useRef<Record<string, THREE.Quaternion>>({})
   const frameIdx = useRef(0)
@@ -175,6 +220,7 @@ export default function SignLanguageAvatar({
         }
       }
     })
+    onLoad?.()
   }, [scene])
 
 
@@ -364,13 +410,14 @@ export default function SignLanguageAvatar({
       return
     }
 
-    elapsed.current += delta
     const frameDuration = 1 / fps
 
-    // Advance frame index when a full frame period has elapsed
-    if (elapsed.current >= frameDuration) {
-      elapsed.current -= frameDuration
-      frameIdx.current++
+    if (!paused) {
+      elapsed.current += delta
+      if (elapsed.current >= frameDuration) {
+        elapsed.current -= frameDuration
+        frameIdx.current++
+      }
     }
 
     if (frameIdx.current >= frames.length) {
@@ -430,7 +477,7 @@ export default function SignLanguageAvatar({
       bone.quaternion.copy(a).slerp(b, lerpT)
     }
 
-    // Smooth intro: blend from idle pose over first INTRO_FRAMES frames
+    // Smooth intro: blend from idle pose over first INTRO_FRAMES frames.
     if (currentIdx < INTRO_FRAMES) {
       const raw = (currentIdx + lerpT) / INTRO_FRAMES
       const blend = raw * raw * (3 - 2 * raw) // smoothstep
@@ -848,12 +895,12 @@ function applyArm(
   lw.y += WRIST_OFFSET.y
   lw.z += WRIST_OFFSET.z
 
-  // Prevent hands from clipping into the torso.
-  // MediaPipe Z estimation degrades when hands occlude each other
-  // (crossed arms, hands in front of belly). Ensure the wrist is at
-  // least as forward as both the shoulder and the elbow so the
-  // forearm always points forward or sideways, never into the body.
-  lw.z = Math.max(lw.z, ls.z, le.z)
+  // Prevent arm from clipping into the torso.
+  // MediaPipe Z estimation is unreliable — clamp elbow to be at least
+  // as forward as the shoulder so the upper arm never points into the body.
+  le.z = Math.max(le.z, ls.z)
+  // Then clamp wrist to be at least as forward as the elbow.
+  lw.z = Math.max(lw.z, le.z)
 
   const upperArmDir = new THREE.Vector3().subVectors(le, ls)
   const foreArmDir  = new THREE.Vector3().subVectors(lw, le)
@@ -987,3 +1034,5 @@ function applyHand(
     }
   }
 }
+
+useGLTF.preload('/avatar.glb')

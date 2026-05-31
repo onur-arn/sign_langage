@@ -39,6 +39,20 @@ body {
   background: linear-gradient(to bottom, #0284c7, #4f46e5);
 }
 
+/* Hide native browser password reveal button */
+::-webkit-password-toggle,
+::-webkit-strong-password-auto-fill-button {
+  display: none !important;
+}
+input::-ms-reveal,
+input::-ms-clear,
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-contacts-auto-fill-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* Smooth Transitions */
 * {
   transition-property: background-color, border-color, color, fill, stroke;

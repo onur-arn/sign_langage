@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { generateApprovalToken } from './approval-token';
 
 function getTransporter() {
   return nodemailer.createTransport({
@@ -17,8 +18,10 @@ export async function sendApprovalRequestEmail(newUser: { name: string | null; e
   if (!adminEmail || !process.env.SMTP_USER) return;
   const transporter = getTransporter();
 
-  const approveUrl = `${process.env.NEXTAUTH_URL}/api/admin/approve?userId=${newUser.id}&action=approve&secret=${process.env.ADMIN_SECRET}`;
-  const rejectUrl  = `${process.env.NEXTAUTH_URL}/api/admin/approve?userId=${newUser.id}&action=reject&secret=${process.env.ADMIN_SECRET}`;
+  const approveToken = generateApprovalToken(newUser.id, 'approve');
+  const rejectToken  = generateApprovalToken(newUser.id, 'reject');
+  const approveUrl = `${process.env.NEXTAUTH_URL}/api/admin/approve?token=${approveToken}`;
+  const rejectUrl  = `${process.env.NEXTAUTH_URL}/api/admin/approve?token=${rejectToken}`;
 
   await transporter.sendMail({
     from: `"Sign Language App" <${process.env.SMTP_USER}>`,
@@ -40,7 +43,7 @@ export async function sendApprovalRequestEmail(newUser: { name: string | null; e
           </a>
         </div>
         <p style="margin-top:20px;color:#64748b;font-size:12px;">
-          Vous pouvez aussi gérer les demandes depuis <a href="${process.env.NEXTAUTH_URL}/admin">le panneau admin</a>.
+          Lien valable 48 heures. Vous pouvez aussi gérer les demandes depuis <a href="${process.env.NEXTAUTH_URL}/admin">le panneau admin</a>.
         </p>
       </div>
     `,

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const target = await prisma.user.findUnique({ where: { id: userId } });
   if (!target) return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });
 
-  if (target.email === 'secretaire@youthstation.org') {
+  if (target.email === process.env.PROTECTED_ADMIN_EMAIL) {
     return NextResponse.json({ error: 'Ce compte ne peut pas être supprimé' }, { status: 403 });
   }
 

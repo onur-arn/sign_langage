@@ -51,7 +51,7 @@ export default function HomePage() {
               <button
                 key={lang.code}
                 onClick={() => setLanguage(lang.code)}
-                className="px-4 py-2 rounded-xl font-medium text-sm transition-all"
+                className="px-4 py-2 rounded-xl font-medium text-sm transition-all cursor-pointer"
                 style={language === lang.code
                   ? { background: '#5ba4b0', color: '#ffffff', fontWeight: 700 }
                   : { color: dark ? 'rgba(255,255,255,0.7)' : '#5ba4b0' }
@@ -86,11 +86,8 @@ export default function HomePage() {
             </Link>
             <Link
               href="/login"
-              className="px-8 py-3.5 rounded-full font-semibold text-sm transition-all border-2"
-              style={dark
-                ? { borderColor: 'rgba(255,255,255,0.4)', color: 'rgba(255,255,255,0.85)' }
-                : { borderColor: '#5ba4b0', color: '#5ba4b0' }
-              }
+              className="px-8 py-3.5 rounded-full font-semibold text-sm hover:scale-105 hover:shadow-xl transition-all shadow-md"
+              style={{ background: '#5ba4b0', color: '#ffffff' }}
             >
               {t.hero.login}
             </Link>
@@ -111,6 +108,29 @@ export default function HomePage() {
       {/* ── BELOW THE FOLD ── */}
       <section className="relative z-10 px-6 py-20 transition-colors duration-500" style={{ background: tx.sectionBg }}>
         <div className="max-w-5xl mx-auto space-y-16">
+
+          {/* Project intro */}
+          <div className="rounded-3xl border p-10 text-center" style={{ background: tx.card, borderColor: tx.cardBorder, boxShadow: '0 4px 24px rgba(91,164,176,0.08)' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-10" style={{ color: tx.partnerLabel }}>
+              {t.about.carriedBy}
+            </p>
+            <div className="flex items-center justify-center gap-6 mb-8">
+              {[
+                { href: 'https://youthstation.org', src: '/logo-project.jpg', name: 'Youth Station Association', h: 'h-16' },
+                { href: 'https://letsdoitturkey.com', src: '/logo-letsdoitturkey.png', name: "Let's Do It Türkiye", h: 'h-16' },
+              ].map((org) => (
+                <a key={org.href} href={org.href} target="_blank" rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-3 px-8 py-5 rounded-2xl border transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                  style={{ background: tx.logoBg, borderColor: 'rgba(91,164,176,0.2)' }}>
+                  <Image src={org.src} alt={org.name} width={160} height={80} className={`object-contain ${org.h} w-auto`} />
+                  <span className="text-xs font-medium" style={{ color: '#5ba4b0' }}>{org.name}</span>
+                </a>
+              ))}
+            </div>
+            <p className="max-w-xl mx-auto text-base leading-relaxed" style={{ color: tx.subtitle }}>
+              {t.about.description}
+            </p>
+          </div>
 
           {/* Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -136,9 +156,10 @@ export default function HomePage() {
               style={{ color: tx.partnerLabel }}>
               {language === 'fr' ? 'Partenaires & collaborateurs' : language === 'tr' ? 'Ortaklar & iş birlikçiler' : 'Partners & collaborators'}
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16">
+            <div className="flex items-center justify-center gap-6 md:gap-10">
               {[
                 { src: '/logo-project.jpg', alt: 'Project logo', h: 'h-20' },
+                { src: '/logo-letsdoitturkey.png', alt: "Let's Do It Turkey", h: 'h-20' },
                 { src: '/logo-youthstation.png', alt: 'Youth Station', h: 'h-20' },
                 { src: '/logo-ulusal-ajans.png', alt: 'Türkiye Ulusal Ajansı', h: 'h-16' },
                 { src: '/logo-eu.png', alt: 'Co-funded by the European Union', h: 'h-24' },

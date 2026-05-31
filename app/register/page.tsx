@@ -8,10 +8,12 @@ import { GridAnimation } from '@/components/GridAnimation';
 import { DarkModeToggle } from '@/components/DarkModeToggle';
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const { t, language, setLanguage } = useLanguage();
   const { dark } = useDarkMode();
 
@@ -25,7 +27,7 @@ export default function RegisterPage() {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: formData.name, email: formData.email, password: formData.password }),
+        body: JSON.stringify({ name: `${formData.firstName} ${formData.lastName}`.trim(), email: formData.email, password: formData.password }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -66,7 +68,7 @@ export default function RegisterPage() {
           style={{ background: dark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.85)', borderColor: 'rgba(91,164,176,0.25)' }}>
           {languages.map((lang) => (
             <button key={lang.code} onClick={() => setLanguage(lang.code)}
-              className="px-3 py-2 rounded-xl text-sm transition-all"
+              className="px-3 py-2 rounded-xl text-sm transition-all cursor-pointer"
               style={language === lang.code
                 ? { background: '#5ba4b0', color: '#ffffff' }
                 : { color: dark ? 'rgba(255,255,255,0.7)' : '#5ba4b0' }}>
@@ -114,10 +116,17 @@ export default function RegisterPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2" style={{ color: textMain }}>{t.auth.name}</label>
-                <input name="name" type="text" placeholder="Onur Arslan" value={formData.name} onChange={handleChange}
-                  className={inputClass} style={inputStyle} />
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: textMain }}>{t.auth.firstName}</label>
+                  <input name="firstName" type="text" placeholder="Onur" value={formData.firstName} onChange={handleChange}
+                    className={inputClass} style={inputStyle} />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-semibold mb-2" style={{ color: textMain }}>{t.auth.lastName}</label>
+                  <input name="lastName" type="text" placeholder="Arslan" value={formData.lastName} onChange={handleChange}
+                    className={inputClass} style={inputStyle} />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: textMain }}>{t.auth.email}</label>
@@ -126,16 +135,46 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: textMain }}>{t.auth.password}</label>
-                <input name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required
-                  className={inputClass} style={inputStyle} />
+                <div className="relative">
+                  <input name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.password} onChange={handleChange} required
+                    className={inputClass + ' pr-14'} style={inputStyle} />
+                  <button type="button" onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
+                    style={{ color: dark ? 'rgba(255,255,255,0.5)' : '#4a7a84' }}>
+                    {showPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-2" style={{ color: textMain }}>{t.auth.confirmPassword}</label>
-                <input name="confirmPassword" type="password" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} required
-                  className={inputClass} style={inputStyle} />
+                <div className="relative">
+                  <input name="confirmPassword" type={showConfirm ? 'text' : 'password'} placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} required
+                    className={inputClass + ' pr-14'} style={inputStyle} />
+                  <button type="button" onClick={() => setShowConfirm(v => !v)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
+                    style={{ color: dark ? 'rgba(255,255,255,0.5)' : '#4a7a84' }}>
+                    {showConfirm ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
               <button type="submit" disabled={loading}
-                className="w-full text-white py-4 rounded-2xl font-semibold hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md mt-2"
+                className="w-full text-white py-4 rounded-2xl font-semibold cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md mt-2"
                 style={{ background: '#5ba4b0' }}>
                 {loading ? `${t.auth.registerButton}...` : t.auth.registerButton}
               </button>

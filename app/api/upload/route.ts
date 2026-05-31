@@ -1,7 +1,34 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PDFParse } from 'pdf-parse';
+
+function extractTextFromPdf(buffer: Buffer): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const PDFParser = require('pdf2json');
+    const parser = new PDFParser(null, 1);
+
+    parser.on('pdfParser_dataReady', (data: any) => {
+      try {
+        const text = data.Pages
+          .flatMap((page: any) => page.Texts)
+          .map((t: any) => decodeURIComponent(t.R.map((r: any) => r.T).join('')))
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        resolve(text);
+      } catch {
+        reject(new Error('Impossible de lire le contenu du PDF'));
+      }
+    });
+
+    parser.on('pdfParser_dataError', (err: any) => {
+      reject(new Error(err?.parserError || 'Erreur lors du parsing PDF'));
+    });
+
+    parser.parseBuffer(buffer);
+  });
+}
 
 export async function POST(req: Request) {
   try {
@@ -22,15 +49,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Seuls les fichiers PDF sont acceptés' }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const parser = new PDFParse({ data: buffer });
-    const data = await parser.getText();
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Le fichier ne doit pas dépasser 10 Mo' }, { status: 413 });
+    }
 
-    if (!data.text.trim()) {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const text = await extractTextFromPdf(buffer);
+
+    if (!text) {
       return NextResponse.json({ error: 'Aucun texte détecté dans le PDF' }, { status: 422 });
     }
 
-    return NextResponse.json({ text: data.text.trim() });
+    return NextResponse.json({ text });
   } catch (error) {
     console.error('Erreur extraction PDF:', error);
     return NextResponse.json(

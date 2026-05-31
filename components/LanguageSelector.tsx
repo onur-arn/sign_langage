@@ -28,7 +28,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
           <button
             key={lang.code}
             onClick={() => setLanguage(lang.code)}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+            className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer"
             style={language === lang.code
               ? { background: '#5ba4b0', color: '#ffffff' }
               : { color: dark ? 'rgba(255,255,255,0.65)' : '#5ba4b0' }}
@@ -50,7 +50,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
         <button
           key={lang.code}
           onClick={() => setLanguage(lang.code)}
-          className="px-4 py-2.5 rounded-xl font-medium text-sm transition-all"
+          className="px-4 py-2.5 rounded-xl font-medium text-sm transition-all cursor-pointer"
           style={language === lang.code
             ? { background: '#5ba4b0', color: '#ffffff' }
             : { color: dark ? 'rgba(255,255,255,0.65)' : '#4a7a84' }}

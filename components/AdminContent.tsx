@@ -59,7 +59,7 @@ export default function AdminContent(initial: AdminContentProps) {
       body: JSON.stringify({ userId, role }),
     });
     setLoadingId(null);
-    router.refresh();
+    await refresh();
   };
 
   const handleDelete = async (userId: string, email: string) => {
@@ -71,7 +71,7 @@ export default function AdminContent(initial: AdminContentProps) {
       body: JSON.stringify({ userId }),
     });
     setLoadingId(null);
-    router.refresh();
+    await refresh();
   };
 
   const handleApproval = async (userId: string, action: 'approve' | 'reject') => {
@@ -82,7 +82,7 @@ export default function AdminContent(initial: AdminContentProps) {
       body: JSON.stringify({ userId, action }),
     });
     setLoadingId(null);
-    router.refresh();
+    await refresh();
   };
 
   const bg       = dark ? '#05191e' : '#ffffff';
@@ -109,7 +109,7 @@ export default function AdminContent(initial: AdminContentProps) {
               <LanguageSelector variant="compact" />
               <Link
                 href="/dashboard"
-                className="px-6 py-3 text-white rounded-xl font-semibold transition-all hover:shadow-md hover:scale-[1.02]"
+                className="px-5 py-2.5 text-white rounded-xl font-medium text-sm transition-all hover:shadow-md hover:scale-[1.02] cursor-pointer"
                 style={{ background: '#5ba4b0' }}
               >
                 ← {t.admin.back}
@@ -150,7 +150,7 @@ export default function AdminContent(initial: AdminContentProps) {
             <p className="font-mono">
               {lastUpdate ? `${String(lastUpdate.getHours()).padStart(2,'0')}:${String(lastUpdate.getMinutes()).padStart(2,'0')}:${String(lastUpdate.getSeconds()).padStart(2,'0')}` : '—'}
             </p>
-            <button onClick={refresh} className="mt-2 px-3 py-1 rounded-lg transition-all hover:shadow-sm"
+            <button onClick={refresh} className="mt-2 px-3 py-1 rounded-lg transition-all hover:shadow-sm cursor-pointer"
               style={{ background: sectionBg, color: '#5ba4b0', border: `1px solid ${border}` }}>
               ↻ {t.admin.refresh}
             </button>
@@ -177,14 +177,14 @@ export default function AdminContent(initial: AdminContentProps) {
                     <button
                       onClick={() => handleApproval(user.id, 'approve')}
                       disabled={loadingId === user.id}
-                      className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all disabled:opacity-50"
+                      className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {loadingId === user.id ? '…' : `✓ ${t.admin.approve}`}
                     </button>
                     <button
                       onClick={() => handleApproval(user.id, 'reject')}
                       disabled={loadingId === user.id}
-                      className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-all disabled:opacity-50"
+                      className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {loadingId === user.id ? '…' : `✗ ${t.admin.reject}`}
                     </button>
@@ -214,7 +214,7 @@ export default function AdminContent(initial: AdminContentProps) {
                   <button
                     onClick={() => handleApproval(user.id, 'approve')}
                     disabled={loadingId === user.id}
-                    className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all disabled:opacity-50"
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all disabled:opacity-50 cursor-pointer"
                   >
                     {loadingId === user.id ? '…' : `✓ ${t.admin.approveAnyway}`}
                   </button>
@@ -264,13 +264,13 @@ export default function AdminContent(initial: AdminContentProps) {
                         <span className="px-3 py-1.5 text-xs italic" style={{ color: textSub }}>{t.admin.mainAccount}</span>
                       ) : user.role === 'ADMIN' ? (
                         <button onClick={() => handleRoleChange(user.id, 'USER')} disabled={loadingId === user.id}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 hover:bg-red-100 hover:text-red-700"
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 hover:bg-red-100 hover:text-red-700 cursor-pointer"
                           style={{ background: dark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', color: textSub }}>
                           {loadingId === user.id ? '…' : `✕ ${t.admin.revokeAccess}`}
                         </button>
                       ) : (
                         <button onClick={() => handleRoleChange(user.id, 'ADMIN')} disabled={loadingId === user.id}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer"
                           style={{ background: 'rgba(91,164,176,0.1)', color: '#5ba4b0' }}>
                           {loadingId === user.id ? '…' : `+ ${t.admin.grantAccess}`}
                         </button>
@@ -282,7 +282,7 @@ export default function AdminContent(initial: AdminContentProps) {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {user.email !== 'secretaire@youthstation.org' && (
                         <button onClick={() => handleDelete(user.id, user.email)} disabled={loadingId === user.id}
-                          className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-500 hover:text-white transition-all disabled:opacity-50">
+                          className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-500 hover:text-white transition-all disabled:opacity-50 cursor-pointer">
                           {loadingId === user.id ? '…' : `🗑 ${t.admin.deleteAccount}`}
                         </button>
                       )}

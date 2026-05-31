@@ -10,6 +10,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@next/swc-darwin-x64": "^16.2.6",
     "@prisma/client": "5.22.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
@@ -23,6 +24,7 @@
     "nodemailer": "^7.0.13",
     "openid-client": "^5.6.5",
     "pdf-parse": "^2.4.5",
+    "pdf2json": "^4.0.3",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "tailwind-merge": "^3.4.0",

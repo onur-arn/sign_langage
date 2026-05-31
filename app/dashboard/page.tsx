@@ -4,10 +4,31 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import FileUpload from '@/components/upload/FileUpload';
 import VoiceInput from '@/components/VoiceInput';
 import LanguageSelector from '@/components/LanguageSelector';
-import SignAvatarPlayer from '@/components/SignAvatarPlayer';
+
+const SignAvatarPlayer = dynamic(() => import('@/components/SignAvatarPlayer'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full rounded-2xl flex items-center justify-center bg-slate-900" style={{ minHeight: 580 }}>
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative w-20 h-20">
+          <div className="absolute inset-0 rounded-full border-4 border-slate-700" />
+          <div className="absolute inset-0 rounded-full border-4 border-t-[#5ba4b0] animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <svg className="w-8 h-8 text-[#5ba4b0] opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+        </div>
+        <p className="text-sm font-medium text-slate-400 animate-pulse">Chargement de l'avatar…</p>
+      </div>
+    </div>
+  ),
+});
 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useDarkMode } from '@/contexts/DarkModeContext';
@@ -94,7 +115,7 @@ export default function DashboardPage() {
               ) : null}
               <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="px-5 py-2.5 text-white rounded-xl font-semibold text-sm transition-all hover:shadow-md hover:scale-[1.02]"
+                className="px-5 py-2.5 text-white rounded-xl font-semibold text-sm transition-all hover:shadow-md hover:scale-[1.02] cursor-pointer"
                 style={{ background: '#5ba4b0' }}
               >
                 {t.dashboard.logout}
@@ -106,10 +127,10 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
 
           {/* Left Panel - Input */}
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
 
             {/* 1. Texte */}
             <div className="rounded-2xl border p-6 transition-all hover:shadow-md" style={{ background: cardBg, borderColor: border }}>
@@ -125,7 +146,7 @@ export default function DashboardPage() {
                     <button
                       key={code}
                       onClick={() => setInputLang(code)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
                       style={inputLang === code
                         ? { background: '#5ba4b0', color: '#ffffff' }
                         : { color: textSub }
@@ -144,18 +165,28 @@ export default function DashboardPage() {
                 onChange={(e) => setText(e.target.value)}
                 rows={5}
               />
-              <button
-                onClick={() => handleTranslate(text)}
-                disabled={!text.trim()}
-                className="mt-3 w-full text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-[1.01] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 text-sm"
-                style={{ background: '#5ba4b0' }}
-              >
-                {t.dashboard.translate}
-              </button>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={() => handleTranslate(text)}
+                  disabled={!text.trim()}
+                  className="flex-1 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-[1.01] transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 text-sm cursor-pointer"
+                  style={{ background: '#5ba4b0' }}
+                >
+                  {t.dashboard.translate}
+                </button>
+                <button
+                  onClick={() => setText('')}
+                  disabled={!text.trim()}
+                  className="shrink-0 px-4 py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-md cursor-pointer"
+                  style={{ background: 'rgba(91,164,176,0.12)', color: '#5ba4b0', border: '1px solid rgba(91,164,176,0.25)' }}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {/* 2. PDF + Voix */}
-            <div className="grid grid-cols-2 gap-4 items-stretch">
+            <div className="grid grid-cols-2 gap-4 items-stretch flex-1">
               <div className="rounded-2xl border p-5 transition-all hover:shadow-md" style={{ background: cardBg, borderColor: border }}>
                 <div className="flex items-center gap-2 mb-4">
                   <div className="text-2xl">📄</div>
@@ -170,7 +201,7 @@ export default function DashboardPage() {
                   <h2 className="text-base font-semibold" style={{ color: textMain }}>{t.dashboard.voice}</h2>
                 </div>
                 <div className="flex-1 flex flex-col">
-                  <VoiceInput onTranscript={handleVoiceTranscript} />
+                  <VoiceInput onTranscript={handleVoiceTranscript} onCopyToText={(transcript) => setText(transcript)} />
                 </div>
               </div>
             </div>
@@ -197,8 +228,8 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Panel - Avatar */}
-          <div className="lg:sticky lg:top-6">
-            <div className="rounded-2xl border p-4 hover:shadow-lg transition-all" style={{ background: cardBg, borderColor: border }}>
+          <div>
+            <div className="h-full rounded-2xl border p-4 hover:shadow-lg transition-all" style={{ background: cardBg, borderColor: border }}>
               <div className="flex items-center gap-3 mb-3">
                 <div className="text-2xl">🎥</div>
                 <h2 className="text-lg font-semibold" style={{ color: textMain }}>{t.dashboard.result}</h2>
@@ -216,9 +247,10 @@ export default function DashboardPage() {
           <p className="text-center text-xs font-semibold uppercase tracking-widest" style={{ color: textSub }}>
             {language === 'fr' ? 'Partenaires & collaborateurs' : language === 'tr' ? 'Ortaklar & iş birlikçiler' : 'Partners & collaborators'}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+          <div className="flex items-center justify-center gap-5 md:gap-8">
             {[
               { src: '/logo-project.jpg', alt: 'Project logo', h: 'h-16' },
+              { src: '/logo-letsdoitturkey.png', alt: "Let's Do It Turkey", h: 'h-16' },
               { src: '/logo-youthstation.png', alt: 'Youth Station', h: 'h-16' },
               { src: '/logo-ulusal-ajans.png', alt: 'Türkiye Ulusal Ajansı', h: 'h-12' },
               { src: '/logo-eu.png', alt: 'Co-funded by the European Union', h: 'h-20' },
