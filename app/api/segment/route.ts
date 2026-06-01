@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
 
   const resolved = await Promise.all(
     slots.map(async slot => {
-      const wordKey = (slot.word ?? slot.token).toLowerCase();
-      if (overrideMap[wordKey]) return { sign: overrideMap[wordKey], word: slot.word ?? slot.token };
+      const wordKey = (slot.found ? slot.word : slot.token).toLowerCase();
+      if (overrideMap[wordKey]) return { sign: overrideMap[wordKey], word: slot.found ? slot.word : slot.token };
       if (slot.found) return { sign: slot.sign, word: slot.word };
       const fallback = await findSynonymSign(slot.token, lang, lookupWord);
       if (fallback) return { sign: fallback.sign, word: slot.token };
