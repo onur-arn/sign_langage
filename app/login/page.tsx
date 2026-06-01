@@ -71,14 +71,14 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="relative z-20 border p-10 rounded-3xl shadow-xl w-full max-w-md backdrop-blur-sm transition-colors duration-500"
+      <div className="relative z-20 border p-6 sm:p-10 rounded-3xl shadow-xl w-full max-w-md backdrop-blur-sm transition-colors duration-500"
         style={{ background: cardBg, borderColor: cardBorder, boxShadow: '0 8px 40px rgba(91,164,176,0.12)' }}>
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center shadow-lg"
             style={{ background: '#5ba4b0' }}>
             <span className="text-3xl">👋</span>
           </div>
-          <h1 className="text-4xl font-bold mb-2" style={{ color: textMain }}>{t.auth.loginTitle}</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2" style={{ color: textMain }}>{t.auth.loginTitle}</h1>
           <p style={{ color: textSub }}>{t.auth.loginSubtitle}</p>
         </div>
 

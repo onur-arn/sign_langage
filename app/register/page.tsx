@@ -78,7 +78,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <div className="relative z-20 border p-10 rounded-3xl shadow-xl w-full max-w-md backdrop-blur-sm transition-colors duration-500"
+      <div className="relative z-20 border p-6 sm:p-10 rounded-3xl shadow-xl w-full max-w-md backdrop-blur-sm transition-colors duration-500"
         style={{ background: cardBg, borderColor: cardBorder, boxShadow: '0 8px 40px rgba(91,164,176,0.12)' }}>
         {success ? (
           <div className="text-center py-6">
@@ -105,7 +105,7 @@ export default function RegisterPage() {
                 style={{ background: '#5ba4b0' }}>
                 <span className="text-3xl">✨</span>
               </div>
-              <h1 className="text-4xl font-bold mb-2" style={{ color: textMain }}>{t.auth.registerTitle}</h1>
+              <h1 className="text-3xl sm:text-4xl font-bold mb-2" style={{ color: textMain }}>{t.auth.registerTitle}</h1>
               <p style={{ color: textSub }}>{t.auth.registerSubtitle}</p>
             </div>
 
@@ -116,7 +116,7 @@ export default function RegisterPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1">
                   <label className="block text-sm font-semibold mb-2" style={{ color: textMain }}>{t.auth.firstName}</label>
                   <input name="firstName" type="text" placeholder="Onur" value={formData.firstName} onChange={handleChange}

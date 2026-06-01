@@ -66,7 +66,7 @@ export default function HomePage() {
 
         {/* Centered hero content */}
         <div className="relative z-20 flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <h1 className="text-6xl md:text-7xl lg:text-8xl tracking-tight leading-tight transition-colors duration-500" style={{ color: tx.title }}>
+          <h1 className="text-5xl md:text-7xl lg:text-8xl tracking-tight leading-tight transition-colors duration-500" style={{ color: tx.title }}>
             <span className="font-extralight">{t.hero.title}</span>
             <span className="block font-bold mt-2" style={{ color: '#5ba4b0' }}>
               {t.hero.titleBold}
@@ -156,7 +156,7 @@ export default function HomePage() {
               style={{ color: tx.partnerLabel }}>
               {language === 'fr' ? 'Partenaires & collaborateurs' : language === 'tr' ? 'Ortaklar & iş birlikçiler' : 'Partners & collaborators'}
             </p>
-            <div className="flex items-center justify-center gap-6 md:gap-10">
+            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6">
               {[
                 { src: '/logo-project.jpg', alt: 'Project logo', h: 'h-20' },
                 { src: '/logo-letsdoitturkey.png', alt: "Let's Do It Turkey", h: 'h-20' },

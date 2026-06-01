@@ -104,7 +104,7 @@ export default function AdminContent(initial: AdminContentProps) {
               <h1 className="text-3xl font-bold" style={{ color: textMain }}>🔧 {t.admin.title}</h1>
               <p className="text-sm mt-1" style={{ color: textSub }}>{t.admin.subtitle}</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <DarkModeToggle />
               <LanguageSelector variant="compact" />
               <Link

@@ -93,32 +93,34 @@ export default function DashboardPage() {
     <div className="min-h-screen transition-colors duration-500" style={{ background: bg }}>
       {/* Header */}
       <header className="border-b shadow-sm transition-colors duration-500" style={{ background: hdrBg, borderColor: border }}>
-        <div className="max-w-7xl mx-auto px-8 py-5">
-          <div className="flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-5">
+          <div className="flex flex-wrap justify-between items-center gap-3">
             <div>
-              <h1 className="text-3xl font-bold" style={{ color: textMain }}>
+              <h1 className="text-xl md:text-3xl font-bold" style={{ color: textMain }}>
                 {t.dashboard.title} <span className="font-light">{t.dashboard.titleBold}</span>
               </h1>
               <p className="text-sm mt-1" style={{ color: textSub }}>{session.user?.name || session.user?.email}</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <DarkModeToggle />
               <LanguageSelector variant="compact" />
               {(session.user as any)?.role === 'ADMIN' ? (
                 <a
                   href="/admin"
-                  className="px-5 py-2.5 rounded-xl font-medium text-sm border transition-all hover:shadow-md"
+                  className="px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-medium text-sm border transition-all hover:shadow-md"
                   style={{ color: '#5ba4b0', borderColor: 'rgba(91,164,176,0.3)', background: cardBg }}
                 >
-                  {t.dashboard.admin}
+                  <span className="hidden sm:inline">{t.dashboard.admin}</span>
+                  <span className="sm:hidden">⚙️</span>
                 </a>
               ) : null}
               <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="px-5 py-2.5 text-white rounded-xl font-semibold text-sm transition-all hover:shadow-md hover:scale-[1.02] cursor-pointer"
+                className="px-3 py-2 md:px-5 md:py-2.5 text-white rounded-xl font-semibold text-sm transition-all hover:shadow-md hover:scale-[1.02] cursor-pointer"
                 style={{ background: '#5ba4b0' }}
               >
-                {t.dashboard.logout}
+                <span className="hidden sm:inline">{t.dashboard.logout}</span>
+                <span className="sm:hidden">⏏</span>
               </button>
             </div>
           </div>
@@ -126,7 +128,7 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 md:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
 
           {/* Left Panel - Input */}
@@ -186,7 +188,7 @@ export default function DashboardPage() {
             </div>
 
             {/* 2. PDF + Voix */}
-            <div className="grid grid-cols-2 gap-4 items-stretch flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch flex-1">
               <div className="rounded-2xl border p-5 transition-all hover:shadow-md" style={{ background: cardBg, borderColor: border }}>
                 <div className="flex items-center gap-2 mb-4">
                   <div className="text-2xl">📄</div>
@@ -242,12 +244,12 @@ export default function DashboardPage() {
       </main>
 
       {/* Partners & Footer */}
-      <footer className="border-t mt-8 px-8 pt-10 pb-6" style={{ borderColor: border }}>
+      <footer className="border-t mt-8 px-4 md:px-8 pt-10 pb-6" style={{ borderColor: border }}>
         <div className="max-w-7xl mx-auto space-y-8">
           <p className="text-center text-xs font-semibold uppercase tracking-widest" style={{ color: textSub }}>
             {language === 'fr' ? 'Partenaires & collaborateurs' : language === 'tr' ? 'Ortaklar & iş birlikçiler' : 'Partners & collaborators'}
           </p>
-          <div className="flex items-center justify-center gap-5 md:gap-8">
+          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-5">
             {[
               { src: '/logo-project.jpg', alt: 'Project logo', h: 'h-16' },
               { src: '/logo-letsdoitturkey.png', alt: "Let's Do It Turkey", h: 'h-16' },
@@ -256,7 +258,7 @@ export default function DashboardPage() {
               { src: '/logo-eu.png', alt: 'Co-funded by the European Union', h: 'h-20' },
             ].map((logo) => (
               <div key={logo.src}
-                className="rounded-2xl px-6 py-4 border transition-all"
+                className="rounded-2xl px-3 py-3 md:px-6 md:py-4 border transition-all"
                 style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#ffffff', borderColor: 'rgba(91,164,176,0.15)', boxShadow: '0 2px 12px rgba(91,164,176,0.08)' }}
               >
                 <Image src={logo.src} alt={logo.alt} width={200} height={90} className={`object-contain ${logo.h} w-auto`} />
