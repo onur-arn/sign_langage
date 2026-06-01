@@ -47,7 +47,8 @@ next-env.d.ts
 
 # Large assets (trop lourds pour GitHub)
 /public/signs/
-/public/avatar.glb
+/public/avatar_2.glb
+/public/avatar_female.glb
 /prisma/dev.db
 
 .next
