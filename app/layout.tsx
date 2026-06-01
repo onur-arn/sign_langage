@@ -12,8 +12,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Langue des Signes",
-  description: "Traduction en langue des signes assistée par intelligence artificielle",
+  title: "Sign Language",
+  description: "AI-powered sign language translation for inclusive communication",
 };
 
 export default function RootLayout({
