@@ -41,7 +41,12 @@ export default function DashboardPage() {
   const { dark } = useDarkMode();
   const [text, setText] = useState('');
   const [avatarText, setAvatarText] = useState<{ value: string; ts: number }>({ value: '', ts: 0 });
-  const [inputLang, setInputLang] = useState<'fr' | 'en' | 'tr'>('fr');
+  const [inputLang, setInputLang] = useState<'fr' | 'en' | 'tr'>(language as 'fr' | 'en' | 'tr');
+
+  // Synchronise inputLang quand l'utilisateur change la langue de l'interface
+  useEffect(() => {
+    setInputLang(language as 'fr' | 'en' | 'tr');
+  }, [language]);
   const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
