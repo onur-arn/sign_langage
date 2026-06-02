@@ -2032,6 +2032,8 @@ const FR_REVERSE: Record<string, string> = {
   'bazooka lance roquettese': 'bazooka_lance_roquettes',
   'bazooka lance roquetteses': 'bazooka_lance_roquettes',
   'beau': 'beau',
+  'belle': 'beau',
+  'belles': 'beau',
   'beau joli magnifique': 'beau_joli_magnifique_1',
   'beau joli magnifiques': 'beau_joli_magnifique_1',
   'beaucoup': 'beaucoup_2',
