@@ -91,6 +91,11 @@ export const translations = {
       voiceTranscript: "Transcript",
       camClose: "Close-up view",
       camGeneral: "General view",
+      uploadClick: "Click to select",
+      uploadDrag: "or drag and drop",
+      uploadHint: "PDF only",
+      uploadProcessing: "Processing",
+      uploadError: "Error processing the PDF",
     },
     // Admin
     admin: {
@@ -228,6 +233,11 @@ export const translations = {
       voiceTranscript: "Transcription",
       camClose: "Vue rapprochée",
       camGeneral: "Vue générale",
+      uploadClick: "Cliquez pour sélectionner",
+      uploadDrag: "ou glissez-déposez",
+      uploadHint: "PDF uniquement",
+      uploadProcessing: "Traitement de",
+      uploadError: "Erreur lors du traitement du PDF",
     },
     // Admin
     admin: {
@@ -365,6 +375,11 @@ export const translations = {
       voiceTranscript: "Transkript",
       camClose: "Yakın görünüm",
       camGeneral: "Genel görünüm",
+      uploadClick: "Seçmek için tıklayın",
+      uploadDrag: "veya sürükleyip bırakın",
+      uploadHint: "Yalnızca PDF",
+      uploadProcessing: "İşleniyor:",
+      uploadError: "PDF işlenirken hata oluştu",
     },
     // Admin
     admin: {

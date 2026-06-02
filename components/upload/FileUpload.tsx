@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useDarkMode } from '@/contexts/DarkModeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface FileUploadProps {
   onTextExtracted: (text: string, fileUrl?: string) => void;
@@ -12,6 +13,7 @@ export default function FileUpload({ onTextExtracted }: FileUploadProps) {
   const [fileName, setFileName] = useState('');
   const [error, setError] = useState('');
   const { dark } = useDarkMode();
+  const { t } = useLanguage();
   const teal = '#5ba4b0';
   const textSub = dark ? 'rgba(255,255,255,0.5)' : '#64748b';
 
@@ -31,15 +33,15 @@ export default function FileUpload({ onTextExtracted }: FileUploadProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Erreur lors du traitement du PDF');
+        setError(data.error || t.dashboard.uploadError);
         return;
       }
 
       onTextExtracted(data.text);
       setFileName('');
     } catch (err) {
-      console.error('Erreur extraction PDF:', err);
-      setError('Erreur lors de l\'extraction du texte du PDF');
+      console.error('PDF extraction error:', err);
+      setError(t.dashboard.uploadError);
     } finally {
       setUploading(false);
     }
@@ -72,13 +74,13 @@ export default function FileUpload({ onTextExtracted }: FileUploadProps) {
               {uploading ? (
                 <div className="flex items-center justify-center gap-3">
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-t-transparent" style={{ borderColor: teal, borderTopColor: 'transparent' }}></div>
-                  <span className="font-medium">Traitement de {fileName}...</span>
+                  <span className="font-medium">{t.dashboard.uploadProcessing} {fileName}...</span>
                 </div>
               ) : (
                 <>
-                  <span className="font-medium" style={{ color: teal }}>Cliquez pour sélectionner</span>
-                  <span> ou glissez-déposez</span>
-                  <p className="text-xs mt-2" style={{ color: textSub }}>PDF uniquement</p>
+                  <span className="font-medium" style={{ color: teal }}>{t.dashboard.uploadClick}</span>
+                  <span> {t.dashboard.uploadDrag}</span>
+                  <p className="text-xs mt-2" style={{ color: textSub }}>{t.dashboard.uploadHint}</p>
                 </>
               )}
             </div>

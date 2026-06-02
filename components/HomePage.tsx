@@ -41,24 +41,24 @@ export default function HomePage() {
         </div>
 
         {/* Top bar */}
-        <div className="absolute top-6 left-0 right-0 z-30 flex items-center justify-between px-6">
+        <div className="absolute top-4 sm:top-6 left-0 right-0 z-30 flex items-center justify-between px-4 sm:px-6">
           <DarkModeToggle variant="overlay" />
 
           {/* Language Selector */}
-          <div className="backdrop-blur-xl border rounded-2xl p-1.5 flex gap-1"
+          <div className="backdrop-blur-xl border rounded-2xl p-1 sm:p-1.5 flex gap-0.5 sm:gap-1"
             style={{ background: dark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.85)', borderColor: 'rgba(91,164,176,0.25)' }}>
             {languages.map((lang) => (
               <button
                 key={lang.code}
                 onClick={() => setLanguage(lang.code)}
-                className="px-4 py-2 rounded-xl font-medium text-sm transition-all cursor-pointer"
+                className="px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl font-medium text-sm transition-all cursor-pointer"
                 style={language === lang.code
                   ? { background: '#5ba4b0', color: '#ffffff', fontWeight: 700 }
                   : { color: dark ? 'rgba(255,255,255,0.7)' : '#5ba4b0' }
                 }
               >
-                <span className="mr-1.5">{lang.flag}</span>
-                {lang.label}
+                <span className="sm:mr-1.5">{lang.flag}</span>
+                <span className="hidden sm:inline">{lang.label}</span>
               </button>
             ))}
           </div>
@@ -66,28 +66,28 @@ export default function HomePage() {
 
         {/* Centered hero content */}
         <div className="relative z-20 flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <h1 className="text-5xl md:text-7xl lg:text-8xl tracking-tight leading-tight transition-colors duration-500" style={{ color: tx.title }}>
+          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl tracking-tight leading-tight transition-colors duration-500" style={{ color: tx.title }}>
             <span className="font-extralight">{t.hero.title}</span>
             <span className="block font-bold mt-2" style={{ color: '#5ba4b0' }}>
               {t.hero.titleBold}
             </span>
           </h1>
-          <p className="mt-6 text-lg md:text-xl max-w-xl font-light leading-relaxed transition-colors duration-500"
+          <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl max-w-xl font-light leading-relaxed transition-colors duration-500 px-2 sm:px-0"
             style={{ color: tx.subtitle }}>
             {t.hero.subtitle}
           </p>
-          <div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
+          <div className="mt-8 sm:mt-10 flex items-center justify-center gap-3 sm:gap-4">
             <Link
               href="/register"
-              className="px-8 py-3.5 rounded-full font-semibold text-sm hover:scale-105 hover:shadow-xl transition-all shadow-md"
-              style={{ background: '#5ba4b0', color: '#ffffff' }}
+              className="flex-1 sm:flex-none text-center px-6 sm:px-8 py-3 sm:py-3.5 rounded-full font-semibold text-sm hover:scale-105 hover:shadow-xl transition-all shadow-md"
+              style={{ background: '#5ba4b0', color: '#ffffff', maxWidth: '180px' }}
             >
               {t.hero.cta}
             </Link>
             <Link
               href="/login"
-              className="px-8 py-3.5 rounded-full font-semibold text-sm hover:scale-105 hover:shadow-xl transition-all shadow-md"
-              style={{ background: '#5ba4b0', color: '#ffffff' }}
+              className="flex-1 sm:flex-none text-center px-6 sm:px-8 py-3 sm:py-3.5 rounded-full font-semibold text-sm hover:scale-105 hover:shadow-xl transition-all shadow-md"
+              style={{ background: '#5ba4b0', color: '#ffffff', maxWidth: '180px' }}
             >
               {t.hero.login}
             </Link>
@@ -110,17 +110,17 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto space-y-16">
 
           {/* Project intro */}
-          <div className="rounded-3xl border p-10 text-center" style={{ background: tx.card, borderColor: tx.cardBorder, boxShadow: '0 4px 24px rgba(91,164,176,0.08)' }}>
-            <p className="text-xs font-semibold uppercase tracking-widest mb-10" style={{ color: tx.partnerLabel }}>
+          <div className="rounded-3xl border p-5 sm:p-10 text-center" style={{ background: tx.card, borderColor: tx.cardBorder, boxShadow: '0 4px 24px rgba(91,164,176,0.08)' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-6 sm:mb-10" style={{ color: tx.partnerLabel }}>
               {t.about.carriedBy}
             </p>
-            <div className="flex items-center justify-center gap-6 mb-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-6 sm:mb-8">
               {[
-                { href: 'https://youthstation.org', src: '/logo-project.jpg', name: 'Youth Station Association', h: 'h-16' },
-                { href: 'https://letsdoitturkey.com', src: '/logo-letsdoitturkey.png', name: "Let's Do It Türkiye", h: 'h-16' },
+                { href: 'https://youthstation.org', src: '/logo-project.jpg', name: 'Youth Station Association', h: 'h-14 sm:h-16' },
+                { href: 'https://letsdoitturkey.com', src: '/logo-letsdoitturkey.png', name: "Let's Do It Türkiye", h: 'h-14 sm:h-16' },
               ].map((org) => (
                 <a key={org.href} href={org.href} target="_blank" rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-3 px-8 py-5 rounded-2xl border transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                  className="flex flex-col items-center gap-3 w-full sm:w-auto px-5 sm:px-8 py-4 sm:py-5 rounded-2xl border transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                   style={{ background: tx.logoBg, borderColor: 'rgba(91,164,176,0.2)' }}>
                   <Image src={org.src} alt={org.name} width={160} height={80} className={`object-contain ${org.h} w-auto`} />
                   <span className="text-xs font-medium" style={{ color: '#5ba4b0' }}>{org.name}</span>
@@ -133,14 +133,14 @@ export default function HomePage() {
           </div>
 
           {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             {[
               { emoji: '📄', title: t.features.pdf.title, desc: t.features.pdf.desc },
               { emoji: '🎤', title: t.features.voice.title, desc: t.features.voice.desc },
               { emoji: '🎥', title: t.features.video.title, desc: t.features.video.desc },
             ].map((f, i) => (
               <div key={i}
-                className="group p-9 rounded-3xl transition-all hover:shadow-xl hover:-translate-y-1 duration-300 border"
+                className="group p-6 sm:p-9 rounded-3xl transition-all hover:shadow-xl hover:-translate-y-1 duration-300 border"
                 style={{ background: tx.card, borderColor: tx.cardBorder, boxShadow: '0 4px 20px rgba(91,164,176,0.08)' }}
               >
                 <div className="text-5xl mb-5">{f.emoji}</div>
@@ -151,21 +151,21 @@ export default function HomePage() {
           </div>
 
           {/* Partners */}
-          <div className="border-t pt-16" style={{ borderColor: tx.border }}>
-            <p className="text-center text-xs font-semibold uppercase tracking-widest mb-12"
+          <div className="border-t pt-10 sm:pt-16" style={{ borderColor: tx.border }}>
+            <p className="text-center text-xs font-semibold uppercase tracking-widest mb-8 sm:mb-12"
               style={{ color: tx.partnerLabel }}>
               {language === 'fr' ? 'Partenaires & collaborateurs' : language === 'tr' ? 'Ortaklar & iş birlikçiler' : 'Partners & collaborators'}
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6">
+            <div className="grid grid-cols-3 sm:flex sm:flex-wrap items-center justify-center gap-2 sm:gap-3 md:gap-6">
               {[
-                { src: '/logo-project.jpg', alt: 'Project logo', h: 'h-20' },
-                { src: '/logo-letsdoitturkey.png', alt: "Let's Do It Turkey", h: 'h-20' },
-                { src: '/logo-youthstation.png', alt: 'Youth Station', h: 'h-20' },
-                { src: '/logo-ulusal-ajans.png', alt: 'Türkiye Ulusal Ajansı', h: 'h-16' },
-                { src: '/logo-eu.png', alt: 'Co-funded by the European Union', h: 'h-24' },
+                { src: '/logo-project.jpg', alt: 'Project logo', h: 'h-10 sm:h-20' },
+                { src: '/logo-letsdoitturkey.png', alt: "Let's Do It Turkey", h: 'h-10 sm:h-20' },
+                { src: '/logo-youthstation.png', alt: 'Youth Station', h: 'h-10 sm:h-20' },
+                { src: '/logo-ulusal-ajans.png', alt: 'Türkiye Ulusal Ajansı', h: 'h-8 sm:h-16' },
+                { src: '/logo-eu.png', alt: 'Co-funded by the European Union', h: 'h-12 sm:h-24' },
               ].map((logo) => (
                 <div key={logo.src}
-                  className="rounded-2xl px-7 py-5 transition-all cursor-default border"
+                  className="flex items-center justify-center rounded-2xl px-3 py-3 sm:px-7 sm:py-5 transition-all cursor-default border"
                   style={{ background: tx.logoBg, borderColor: 'rgba(91,164,176,0.15)', boxShadow: '0 2px 12px rgba(91,164,176,0.1)' }}
                 >
                   <Image

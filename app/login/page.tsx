@@ -51,7 +51,7 @@ export default function LoginPage() {
   const inputBorder = dark ? 'rgba(91,164,176,0.3)' : 'rgba(91,164,176,0.3)';
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden px-4">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden px-4 py-20 sm:py-8">
       <div className="absolute inset-0 z-0"><GridAnimation dark={dark} /></div>
 
       {/* Top bar */}
@@ -71,7 +71,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="relative z-20 border p-6 sm:p-10 rounded-3xl shadow-xl w-full max-w-md backdrop-blur-sm transition-colors duration-500"
+      <div className="relative z-20 border p-5 sm:p-10 rounded-3xl shadow-xl w-full max-w-md backdrop-blur-sm transition-colors duration-500"
         style={{ background: cardBg, borderColor: cardBorder, boxShadow: '0 8px 40px rgba(91,164,176,0.12)' }}>
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center shadow-lg"

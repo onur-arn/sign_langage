@@ -12,7 +12,7 @@ import LanguageSelector from '@/components/LanguageSelector';
 const SignAvatarPlayer = dynamic(() => import('@/components/SignAvatarPlayer'), {
   ssr: false,
   loading: () => (
-    <div className="h-full rounded-2xl flex items-center justify-center bg-slate-900" style={{ minHeight: 580 }}>
+    <div className="h-full rounded-2xl flex items-center justify-center bg-slate-900" style={{ minHeight: 'clamp(320px, 45vw, 580px)' }}>
       <div className="flex flex-col items-center gap-4">
         <div className="relative w-20 h-20">
           <div className="absolute inset-0 rounded-full border-4 border-slate-700" />
@@ -93,34 +93,34 @@ export default function DashboardPage() {
     <div className="min-h-screen transition-colors duration-500" style={{ background: bg }}>
       {/* Header */}
       <header className="border-b shadow-sm transition-colors duration-500" style={{ background: hdrBg, borderColor: border }}>
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-5">
-          <div className="flex flex-wrap justify-between items-center gap-3">
-            <div>
-              <h1 className="text-xl md:text-3xl font-bold" style={{ color: textMain }}>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 py-3 sm:py-5">
+          <div className="flex justify-between items-center gap-2">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl md:text-3xl font-bold truncate" style={{ color: textMain }}>
                 {t.dashboard.title} <span className="font-light">{t.dashboard.titleBold}</span>
               </h1>
-              <p className="text-sm mt-1" style={{ color: textSub }}>{session.user?.name || session.user?.email}</p>
+              <p className="text-xs sm:text-sm mt-0.5 sm:mt-1 truncate" style={{ color: textSub }}>{session.user?.name || session.user?.email}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <DarkModeToggle />
               <LanguageSelector variant="compact" />
               {(session.user as any)?.role === 'ADMIN' ? (
                 <a
                   href="/admin"
-                  className="px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-medium text-sm border transition-all hover:shadow-md"
+                  className="w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2.5 flex items-center justify-center rounded-xl font-medium text-sm border transition-all hover:shadow-md"
                   style={{ color: '#5ba4b0', borderColor: 'rgba(91,164,176,0.3)', background: cardBg }}
                 >
                   <span className="hidden sm:inline">{t.dashboard.admin}</span>
-                  <span className="sm:hidden">⚙️</span>
+                  <span className="sm:hidden text-base">⚙️</span>
                 </a>
               ) : null}
               <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="px-3 py-2 md:px-5 md:py-2.5 text-white rounded-xl font-semibold text-sm transition-all hover:shadow-md hover:scale-[1.02] cursor-pointer"
+                className="w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2.5 flex items-center justify-center text-white rounded-xl font-semibold text-sm transition-all hover:shadow-md hover:scale-[1.02] cursor-pointer"
                 style={{ background: '#5ba4b0' }}
               >
                 <span className="hidden sm:inline">{t.dashboard.logout}</span>
-                <span className="sm:hidden">⏏</span>
+                <span className="sm:hidden text-base leading-none">⏏</span>
               </button>
             </div>
           </div>
@@ -128,14 +128,14 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 py-4 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-stretch">
 
           {/* Left Panel - Input */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 order-2 lg:order-1">
 
             {/* 1. Texte */}
-            <div className="rounded-2xl border p-6 transition-all hover:shadow-md" style={{ background: cardBg, borderColor: border }}>
+            <div className="rounded-2xl border p-3 sm:p-5 transition-all hover:shadow-md" style={{ background: cardBg, borderColor: border }}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="text-2xl">✍️</div>
                 <h2 className="text-lg font-semibold" style={{ color: textMain }}>{t.dashboard.text}</h2>
@@ -160,12 +160,12 @@ export default function DashboardPage() {
                 </div>
               </div>
               <textarea
-                className="w-full p-4 border rounded-xl focus:ring-2 focus:ring-[#5ba4b0] focus:border-[#5ba4b0] transition-all resize-none text-sm outline-none"
+                className="w-full p-3 sm:p-4 border rounded-xl focus:ring-2 focus:ring-[#5ba4b0] focus:border-[#5ba4b0] transition-all resize-none text-sm outline-none"
                 style={{ borderColor: border, color: textMain, background: areaBg }}
                 placeholder={t.dashboard.textPlaceholder}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                rows={5}
+                rows={3}
               />
               <div className="mt-3 flex gap-2">
                 <button
@@ -189,7 +189,7 @@ export default function DashboardPage() {
 
             {/* 2. PDF + Voix */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch flex-1">
-              <div className="rounded-2xl border p-5 transition-all hover:shadow-md" style={{ background: cardBg, borderColor: border }}>
+              <div className="rounded-2xl border p-3 sm:p-5 transition-all hover:shadow-md" style={{ background: cardBg, borderColor: border }}>
                 <div className="flex items-center gap-2 mb-4">
                   <div className="text-2xl">📄</div>
                   <h2 className="text-base font-semibold" style={{ color: textMain }}>{t.dashboard.pdf}</h2>
@@ -197,7 +197,7 @@ export default function DashboardPage() {
                 <FileUpload onTextExtracted={handleTranslate} />
               </div>
 
-              <div className="rounded-2xl border p-5 transition-all hover:shadow-md flex flex-col" style={{ background: cardBg, borderColor: border }}>
+              <div className="rounded-2xl border p-3 sm:p-5 transition-all hover:shadow-md flex flex-col" style={{ background: cardBg, borderColor: border }}>
                 <div className="flex items-center gap-2 mb-4">
                   <div className="text-2xl">🎤</div>
                   <h2 className="text-base font-semibold" style={{ color: textMain }}>{t.dashboard.voice}</h2>
@@ -230,8 +230,8 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Panel - Avatar */}
-          <div>
-            <div className="h-full rounded-2xl border p-4 hover:shadow-lg transition-all" style={{ background: cardBg, borderColor: border }}>
+          <div className="order-1 lg:order-2">
+            <div className="h-full rounded-2xl border p-3 sm:p-4 hover:shadow-lg transition-all" style={{ background: cardBg, borderColor: border }}>
               <div className="flex items-center gap-3 mb-3">
                 <div className="text-2xl">🎥</div>
                 <h2 className="text-lg font-semibold" style={{ color: textMain }}>{t.dashboard.result}</h2>
@@ -244,21 +244,21 @@ export default function DashboardPage() {
       </main>
 
       {/* Partners & Footer */}
-      <footer className="border-t mt-8 px-4 md:px-8 pt-10 pb-6" style={{ borderColor: border }}>
+      <footer className="border-t mt-8 px-3 sm:px-4 md:px-8 pt-8 sm:pt-10 pb-6" style={{ borderColor: border }}>
         <div className="max-w-7xl mx-auto space-y-8">
           <p className="text-center text-xs font-semibold uppercase tracking-widest" style={{ color: textSub }}>
             {language === 'fr' ? 'Partenaires & collaborateurs' : language === 'tr' ? 'Ortaklar & iş birlikçiler' : 'Partners & collaborators'}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-5">
+          <div className="grid grid-cols-3 sm:flex sm:flex-wrap items-center justify-center gap-2 sm:gap-3 md:gap-5">
             {[
-              { src: '/logo-project.jpg', alt: 'Project logo', h: 'h-16' },
-              { src: '/logo-letsdoitturkey.png', alt: "Let's Do It Turkey", h: 'h-16' },
-              { src: '/logo-youthstation.png', alt: 'Youth Station', h: 'h-16' },
-              { src: '/logo-ulusal-ajans.png', alt: 'Türkiye Ulusal Ajansı', h: 'h-12' },
-              { src: '/logo-eu.png', alt: 'Co-funded by the European Union', h: 'h-20' },
+              { src: '/logo-project.jpg', alt: 'Project logo', h: 'h-10 sm:h-16' },
+              { src: '/logo-letsdoitturkey.png', alt: "Let's Do It Turkey", h: 'h-10 sm:h-16' },
+              { src: '/logo-youthstation.png', alt: 'Youth Station', h: 'h-10 sm:h-16' },
+              { src: '/logo-ulusal-ajans.png', alt: 'Türkiye Ulusal Ajansı', h: 'h-8 sm:h-12' },
+              { src: '/logo-eu.png', alt: 'Co-funded by the European Union', h: 'h-12 sm:h-20' },
             ].map((logo) => (
               <div key={logo.src}
-                className="rounded-2xl px-3 py-3 md:px-6 md:py-4 border transition-all"
+                className="flex items-center justify-center rounded-2xl px-2 py-2 sm:px-3 sm:py-3 md:px-6 md:py-4 border transition-all"
                 style={{ background: dark ? 'rgba(255,255,255,0.06)' : '#ffffff', borderColor: 'rgba(91,164,176,0.15)', boxShadow: '0 2px 12px rgba(91,164,176,0.08)' }}
               >
                 <Image src={logo.src} alt={logo.alt} width={200} height={90} className={`object-contain ${logo.h} w-auto`} />

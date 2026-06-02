@@ -58,7 +58,7 @@ export default function RegisterPage() {
   const inputClass = "w-full px-5 py-4 border rounded-2xl focus:ring-2 focus:ring-[#5ba4b0] focus:border-[#5ba4b0] transition-all outline-none placeholder:text-slate-400";
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden px-4 py-20 sm:py-12">
       <div className="absolute inset-0 z-0"><GridAnimation dark={dark} /></div>
 
       {/* Top bar */}
@@ -78,7 +78,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <div className="relative z-20 border p-6 sm:p-10 rounded-3xl shadow-xl w-full max-w-md backdrop-blur-sm transition-colors duration-500"
+      <div className="relative z-20 border p-5 sm:p-10 rounded-3xl shadow-xl w-full max-w-md backdrop-blur-sm transition-colors duration-500"
         style={{ background: cardBg, borderColor: cardBorder, boxShadow: '0 8px 40px rgba(91,164,176,0.12)' }}>
         {success ? (
           <div className="text-center py-6">
