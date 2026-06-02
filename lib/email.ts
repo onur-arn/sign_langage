@@ -1,24 +1,21 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { generateApprovalToken } from './approval-token';
 
-function getResend() {
-  return new Resend(process.env.RESEND_API_KEY);
+function getTransporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
 }
 
-const FROM = process.env.RESEND_FROM || 'Sign Language <onboarding@resend.dev>';
-
-async function sendEmail(payload: Parameters<ReturnType<typeof getResend>['emails']['send']>[0]) {
-  const { data, error } = await getResend().emails.send(payload);
-  if (error) {
-    console.error('[Resend] send error to', payload.to, ':', JSON.stringify(error));
-    throw new Error(error.message);
-  }
-  console.log('[Resend] sent to', payload.to, 'id:', data?.id);
-}
+const FROM = `"Sign Language" <${process.env.GMAIL_USER}>`;
 
 export async function sendApprovalRequestEmail(newUser: { name: string | null; email: string; id: string }) {
   const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminEmail || !process.env.RESEND_API_KEY) return;
+  if (!adminEmail || !process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return;
 
   const approveToken = generateApprovalToken(newUser.id, 'approve');
   const rejectToken  = generateApprovalToken(newUser.id, 'reject');
@@ -26,7 +23,7 @@ export async function sendApprovalRequestEmail(newUser: { name: string | null; e
   const approveUrl = `${base}/api/admin/approve?token=${approveToken}`;
   const rejectUrl  = `${base}/api/admin/approve?token=${rejectToken}`;
 
-  await sendEmail({
+  const info = await getTransporter().sendMail({
     from: FROM,
     to: adminEmail,
     subject: `Nouvelle demande d'inscription — ${newUser.name || newUser.email}`,
@@ -52,13 +49,14 @@ export async function sendApprovalRequestEmail(newUser: { name: string | null; e
       </div>
     `,
   });
+  console.log('[email] admin notifié:', info.messageId);
 }
 
 export async function sendStatusEmail(userEmail: string, approved: boolean) {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) return;
   const base = process.env.NEXTAUTH_URL;
 
-  await sendEmail({
+  const info = await getTransporter().sendMail({
     from: FROM,
     to: userEmail,
     subject: approved ? 'Votre compte a été approuvé' : 'Votre demande a été refusée',
@@ -78,4 +76,5 @@ export async function sendStatusEmail(userEmail: string, approved: boolean) {
            Contactez l'administrateur pour plus d'informations.</p>
          </div>`,
   });
+  console.log('[email] statut envoyé à', userEmail, ':', info.messageId);
 }
