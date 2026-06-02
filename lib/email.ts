@@ -7,6 +7,15 @@ function getResend() {
 
 const FROM = process.env.RESEND_FROM || 'Sign Language <onboarding@resend.dev>';
 
+async function sendEmail(payload: Parameters<ReturnType<typeof getResend>['emails']['send']>[0]) {
+  const { data, error } = await getResend().emails.send(payload);
+  if (error) {
+    console.error('[Resend] send error to', payload.to, ':', JSON.stringify(error));
+    throw new Error(error.message);
+  }
+  console.log('[Resend] sent to', payload.to, 'id:', data?.id);
+}
+
 export async function sendApprovalRequestEmail(newUser: { name: string | null; email: string; id: string }) {
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail || !process.env.RESEND_API_KEY) return;
@@ -17,7 +26,7 @@ export async function sendApprovalRequestEmail(newUser: { name: string | null; e
   const approveUrl = `${base}/api/admin/approve?token=${approveToken}`;
   const rejectUrl  = `${base}/api/admin/approve?token=${rejectToken}`;
 
-  await getResend().emails.send({
+  await sendEmail({
     from: FROM,
     to: adminEmail,
     subject: `Nouvelle demande d'inscription — ${newUser.name || newUser.email}`,
@@ -49,7 +58,7 @@ export async function sendStatusEmail(userEmail: string, approved: boolean) {
   if (!process.env.RESEND_API_KEY) return;
   const base = process.env.NEXTAUTH_URL;
 
-  await getResend().emails.send({
+  await sendEmail({
     from: FROM,
     to: userEmail,
     subject: approved ? 'Votre compte a été approuvé' : 'Votre demande a été refusée',
