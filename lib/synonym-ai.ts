@@ -1,4 +1,7 @@
-const cache = new Map<string, string | null>();
+import { prisma } from './db';
+
+// Cache mémoire locale (warm instance) — la DB est la source de vérité partagée
+const memCache = new Map<string, string | null>();
 
 const LANG_PROMPTS: Record<string, string> = {
   fr: 'Donne 5 synonymes courants en français pour le mot "{word}", du plus simple au moins courant. Réponds uniquement avec les mots séparés par des virgules, sans explication.',
@@ -12,16 +15,34 @@ export async function findSynonymSign(
   lookupFn: (word: string, lang: string) => string | null,
 ): Promise<{ sign: string; synonym: string } | null> {
   const key = `${language}:${token}`;
-  if (cache.has(key)) {
-    const cached = cache.get(key)!;
+
+  // 1. Cache mémoire (chaud)
+  if (memCache.has(key)) {
+    const cached = memCache.get(key)!;
     if (!cached) return null;
     const sign = lookupFn(cached, language);
-    if (sign) return { sign, synonym: cached };
-    return null;
+    return sign ? { sign, synonym: cached } : null;
   }
 
+  // 2. Cache DB (partagé entre toutes les instances)
+  try {
+    const row = await prisma.synonymCache.findUnique({ where: { key } });
+    if (row) {
+      memCache.set(key, row.synonym);
+      if (!row.synonym) return null;
+      const sign = lookupFn(row.synonym, language);
+      return sign ? { sign, synonym: row.synonym } : null;
+    }
+  } catch {
+    // DB indisponible — on continue vers l'IA
+  }
+
+  // 3. Fallback IA (temperature: 0 pour résultat déterministe)
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) { cache.set(key, null); return null; }
+  if (!apiKey) {
+    memCache.set(key, null);
+    return null;
+  }
 
   const prompt = (LANG_PROMPTS[language] ?? LANG_PROMPTS.fr).replace('{word}', token);
 
@@ -36,11 +57,15 @@ export async function findSynonymSign(
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 64,
+        temperature: 0,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
 
-    if (!res.ok) { cache.set(key, null); return null; }
+    if (!res.ok) {
+      memCache.set(key, null);
+      return null;
+    }
 
     const data = await res.json();
     const text: string = data?.content?.[0]?.text ?? '';
@@ -49,14 +74,26 @@ export async function findSynonymSign(
     for (const candidate of candidates) {
       const sign = lookupFn(candidate, language);
       if (sign) {
-        cache.set(key, candidate);
+        memCache.set(key, candidate);
+        // Persiste en DB (fire-and-forget)
+        prisma.synonymCache.upsert({
+          where: { key },
+          create: { key, synonym: candidate },
+          update: { synonym: candidate },
+        }).catch(() => {});
         return { sign, synonym: candidate };
       }
     }
   } catch {
-    // API unavailable — skip silently
+    // API indisponible — skip silencieux
   }
 
-  cache.set(key, null);
+  memCache.set(key, null);
+  // Persiste "aucun synonyme" en DB pour éviter de rappeler l'IA
+  prisma.synonymCache.upsert({
+    where: { key },
+    create: { key, synonym: null },
+    update: { synonym: null },
+  }).catch(() => {});
   return null;
 }

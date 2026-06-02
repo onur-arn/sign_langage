@@ -44,3 +44,11 @@ model Sign {
   createdAt    DateTime @default(now())
 }
 
+// Cache persistant pour les synonymes trouvés par l'IA
+model SynonymCache {
+  id        String   @id @default(cuid())
+  key       String   @unique  // "lang:token"
+  synonym   String?           // null = aucun synonyme trouvé
+  createdAt DateTime @default(now())
+}
+
