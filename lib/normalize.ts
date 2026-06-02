@@ -36145,7 +36145,8 @@ const EN_REMAP: Record<string, string> = {
   'actually':'vraiment',
   // Faux amis de mots courants
   'coffee':  'cafe',
-  'tea':     'the_boisson',
+  'tea':     'the_1',
+  'tee':     'the_1',
   'juice':   'jus_1',
   // Salutations / interjections
   'hey':     'bonjour',
@@ -36188,6 +36189,9 @@ const TR_REMAP: Record<string, string> = {
   // Traduction
   'cevir':        'traduction_traduire_2', // çevir = traduire
   'ceviri':       'traduction_traduire_2', // çeviri = traduction (forme isolée)
+  // Boissons
+  'çay':          'the_1',                // çay = thé (conservé avec accent)
+  'cay':          'the_1',                // çay = thé (forme désaccentuée)
 }
 
 // ─── ASL : mots grammaticaux supprimés ──────────────────────────────────────
