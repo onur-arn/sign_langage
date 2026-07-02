@@ -2,7 +2,7 @@
 
 Application web de traduction en **langue des signes** — convertit du texte, des fichiers PDF ou de la voix en animations d'avatar LSF/ASL/TİD en temps réel.
 
-Co-funded by the European Union.
+Co-financé par l'Union Européenne.
 
 Déployé sur [sign-langage.vercel.app](https://sign-langage.vercel.app)
 
