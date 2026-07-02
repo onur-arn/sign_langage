@@ -1,12 +1,8 @@
 # Sign Language Translator
 
-Projet réalisé dans le cadre du cours **Apprentissage Profond** à l'Université de Lorraine.
-
-Encadrants : **Parisa Rastin** et **Paul Magron**
-
----
-
 Application web de traduction en **langue des signes** — convertit du texte, des fichiers PDF ou de la voix en animations d'avatar LSF/ASL/TİD en temps réel.
+
+Co-funded by the European Union.
 
 Déployé sur [sign-langage.vercel.app](https://sign-langage.vercel.app)
 
